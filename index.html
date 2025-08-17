@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -244,10 +245,9 @@
         import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
         // =========================================================================
-        // PENTING: Ganti konfigurasi di bawah ini dengan konfigurasi dari proyek
-        // Firebase Anda (siamsi-3dd65)
+        // Konfigurasi Firebase Anda
         // =========================================================================
-       const firebaseConfig = {
+        const firebaseConfig = {
           apiKey: "AIzaSyA93UxOEya10fRfOPpbOT4PfSmA_aaQx-E",
           authDomain: "siamsi-3dd65.firebaseapp.com",
           projectId: "siamsi-3dd65",
@@ -256,9 +256,9 @@
           appId: "1:675720995739:web:1af5223781df968289373e",
           measurementId: "G-P5TVSQ6V7X"
         };
-
         // =========================================================================
 
+        // === Inisialisasi Firebase ===
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -328,7 +328,7 @@
         let throwCount = 0;
         const maxThrowsFree = 3;
         let isPremiumUser = false;
-        let freeAttemptsLeft = 2;
+        let freeAttemptsLeft = 2; 
         let selectedPackage = null;
         let unsubscribeUserListener = null;
 
@@ -341,21 +341,18 @@
 
         closeMessageBtn.addEventListener('click', () => messagePopup.classList.add('hidden'));
 
-        // =========================================================================
-        // PERBAIKAN 1 & 2: Alur Autentikasi dan Inisialisasi Aplikasi Diperbaiki
-        // =========================================================================
         async function initializeAppForUser(user) {
             if (unsubscribeUserListener) unsubscribeUserListener();
             
             currentUser = user;
             const userDocRef = doc(db, "users", user.uid);
             
-            unsubscribeUserListener = onSnapshot(userDocRef, (docSnap) => {
+            unsubscribeUserListener = onSnapshot(userDocRef, async (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     isUserAdmin = data.role === 'admin';
                     isPremiumUser = data.isPremium === true;
-                    freeAttemptsLeft = data.freeAttemptsLeft ?? 2;
+                    freeAttemptsLeft = data.freeAttemptsLeft ?? 2; 
                     if (data.displayName && !user.isAnonymous && !nameInput.value) {
                         nameInput.value = data.displayName;
                     }
@@ -363,38 +360,32 @@
                     isUserAdmin = false;
                     isPremiumUser = false;
                     freeAttemptsLeft = 2;
+
+                    if (user.isAnonymous) {
+                        try {
+                            await setDoc(userDocRef, {
+                                displayName: 'Anonymous User',
+                                isPremium: false,
+                                freeAttemptsLeft: 2,
+                                createdAt: serverTimestamp(),
+                                provider: 'anonymous'
+                            });
+                        } catch (e) {
+                            console.error("Gagal membuat dokumen untuk pengguna anonim:", e);
+                        }
+                    }
                 }
-                // Selalu perbarui UI dan cek hash setelah data pengguna termuat/berubah
                 updateUIBasedOnUserState();
                 checkUrlHash(); 
             });
         }
         
-        // Listener utama untuk semua perubahan status autentikasi
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // Jika ada pengguna (baik yang login maupun anonim), inisialisasi aplikasi
-                await initializeAppForUser(user);
-            } else {
-                // Jika tidak ada pengguna SAMA SEKALI, buat sesi anonim baru.
-                // onAuthStateChanged akan terpanggil lagi setelah ini dengan user anonim.
-                try {
-                    await signInAnonymously(auth);
-                } catch (error) {
-                    console.error("Gagal login anonim:", error);
-                    showMessage('Error Kritis', 'Gagal memulai sesi. Coba refresh halaman.');
-                }
-            }
-        });
-        
-        // Memastikan persistensi di-set SEBELUM listener onAuthStateChanged berjalan
-        setPersistence(auth, browserLocalPersistence);
-        // =========================================================================
-
         function updateUIBasedOnUserState() {
             const canShake = nameInput.value.trim() !== '' && (isPremiumUser || freeAttemptsLeft > 0 || isUserAdmin);
             shakeBtn.disabled = !canShake;
         }
+
+        // === Logika Utama & Event Listeners ===
 
         // CMS Logic
         function checkUrlHash() {
@@ -428,11 +419,8 @@
 
         logoutBtn.addEventListener('click', () => {
             signOut(auth).then(() => { 
-                // Reset state lokal setelah logout
                 isUserAdmin = false;
-                // Pindah ke halaman utama
                 window.location.hash = ''; 
-                // Muat ulang untuk memulai sesi anonim yang bersih
                 window.location.reload();
             });
         });
@@ -500,7 +488,7 @@
         });
 
         shakeBtn.addEventListener('click', () => {
-            if (!currentUser) return; // Tambahan keamanan
+            if (!currentUser) return;
             if (!isPremiumUser && freeAttemptsLeft <= 0 && !isUserAdmin) {
                 paymentPopup.classList.remove('hidden');
                 return;
@@ -519,42 +507,35 @@
             }, 800);
         });
 
-        // GANTI FUNGSI LAMA DENGAN YANG INI
-throwBtn.addEventListener('click', async () => {
-    throwBtn.disabled = true;
-    throwCount++;
-    throwCountElement.textContent = throwCount;
-    puakpois.forEach(poi => poi.classList.add('throw-animation'));
-    setTimeout(() => puakpois.forEach(p => p.classList.remove('throw-animation')), 800);
+        throwBtn.addEventListener('click', async () => {
+            throwBtn.disabled = true;
+            throwCount++;
+            throwCountElement.textContent = throwCount;
+            puakpois.forEach(poi => poi.classList.add('throw-animation'));
+            setTimeout(() => puakpois.forEach(p => p.classList.remove('throw-animation')), 800);
 
-    setTimeout(async () => {
-        const result1 = Math.round(Math.random());
-        const result2 = Math.round(Math.random());
-        puakpois[0].textContent = result1 === 0 ? '凹' : '凸';
-        puakpois[1].textContent = result2 === 0 ? '凹' : '凸';
-        const isConfirmed = result1 !== result2;
-        throwResult.classList.remove('hidden');
+            setTimeout(async () => {
+                const result1 = Math.round(Math.random());
+                const result2 = Math.round(Math.random());
+                puakpois[0].textContent = result1 === 0 ? '凹' : '凸';
+                puakpois[1].textContent = result2 === 0 ? '凹' : '凸';
+                const isConfirmed = result1 !== result2;
+                throwResult.classList.remove('hidden');
 
-        if (isConfirmed) {
-            throwResultText.textContent = 'Hasil: Direstui Dewa!';
-            await showPrediction();
-        } else {
-            // ▼▼▼ PERBAIKAN LOGIKA ADA DI SINI ▼▼▼
-            const hasReachedLimit = throwCount >= maxThrowsFree;
-
-            // Cek HANYA untuk pengguna gratis yang sudah mencapai batas
-            if (hasReachedLimit && !isPremiumUser && !isUserAdmin) {
-                throwResultText.textContent = 'Batas lemparan tercapai. Silakan kocok ulang.';
-                // Tombol tetap disabled (tidak diaktifkan kembali)
-            } else {
-                // Untuk admin, premium, ATAU pengguna gratis yang masih punya jatah
-                throwResultText.textContent = 'Hasil: Belum direstui. Coba lagi.';
-                throwBtn.disabled = false; // Aktifkan kembali tombol untuk lemparan berikutnya
-            }
-            // ▲▲▲ AKHIR DARI PERBAIKAN LOGIKA ▲▲▲
-        }
-    }, 900);
-});
+                if (isConfirmed) {
+                    throwResultText.textContent = 'Hasil: Direstui Dewa!';
+                    await showPrediction();
+                } else {
+                    const hasReachedLimit = throwCount >= maxThrowsFree;
+                    if (hasReachedLimit && !isPremiumUser && !isUserAdmin) {
+                        throwResultText.textContent = 'Batas lemparan tercapai. Silakan kocok ulang.';
+                    } else {
+                        throwResultText.textContent = 'Hasil: Belum direstui. Coba lagi.';
+                        throwBtn.disabled = false;
+                    }
+                }
+            }, 900);
+        });
 
         async function showPrediction() {
             if (!currentPredictionNumberState) return;
@@ -578,9 +559,6 @@ throwBtn.addEventListener('click', async () => {
                     predictionResult.classList.remove('hidden');
                     shakeBtn.disabled = true;
                     
-                    // =================================================================
-                    // PERBAIKAN 3: Isolasi proses update jatah agar tidak menyembunyikan hasil
-                    // =================================================================
                     if (!isPremiumUser && !isUserAdmin) {
                         try {
                            await updateDoc(doc(db, "users", currentUser.uid), { freeAttemptsLeft: increment(-1) });
@@ -588,7 +566,6 @@ throwBtn.addEventListener('click', async () => {
                             console.error("Gagal mengurangi jatah gratis, tapi hasil tetap ditampilkan:", updateError);
                         }
                     }
-                    // =================================================================
                     
                 } else {
                     showMessage('Data Kosong', `Data ramalan nomor ${currentPredictionNumberState} belum diisi.`);
@@ -623,14 +600,13 @@ throwBtn.addEventListener('click', async () => {
             const user = userCredential.user;
             const userDocRef = doc(db, "users", user.uid);
             
-            // Cek apakah dokumen sudah ada atau belum
             const docSnap = await getDoc(userDocRef);
             if (!docSnap.exists()) {
                  await setDoc(userDocRef, {
                     displayName: displayName || user.displayName,
                     email: user.email,
                     isPremium: false,
-                    freeAttemptsLeft: maxThrowsFree,
+                    freeAttemptsLeft: 2,
                     createdAt: serverTimestamp()
                 });
             }
@@ -693,7 +669,6 @@ throwBtn.addEventListener('click', async () => {
             btn.disabled = true;
             btn.textContent = "Memproses...";
             try {
-                // Gunakan nama dari profil pengguna jika ada, jika tidak gunakan dari input
                 const finalUserName = currentUser.displayName || userName;
                 const result = await createTransaction({ 
                     name: finalUserName, 
@@ -753,6 +728,27 @@ throwBtn.addEventListener('click', async () => {
                 navigator.serviceWorker.register('sw.js').catch(err => console.error('SW registration failed:', err));
             });
         }
+
+        // Alur Inisialisasi Aplikasi Utama
+        async function initializeAuth() {
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        await initializeAppForUser(user);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                });
+
+            } catch (error) {
+                console.error("Gagal mengatur persistensi:", error);
+                showMessage('Error Kritis', 'Gagal memuat sesi Anda. Coba bersihkan cache browser.');
+            }
+        }
+
+        initializeAuth();
     </script>
 </body>
 </html>
