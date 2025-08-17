@@ -248,20 +248,19 @@
         // Firebase Anda (siamsi-3dd65)
         // =========================================================================
        const firebaseConfig = {
-  apiKey: "AIzaSyA93UxOEya10fRfOPpbOT4PfSmA_aaQx-E",
-  authDomain: "siamsi-3dd65.firebaseapp.com",
-  projectId: "siamsi-3dd65",
-  storageBucket: "siamsi-3dd65.firebasestorage.app",
-  messagingSenderId: "675720995739",
-  appId: "1:675720995739:web:1af5223781df968289373e",
-  measurementId: "G-P5TVSQ6V7X"
-};
+          apiKey: "AIzaSyA93UxOEya10fRfOPpbOT4PfSmA_aaQx-E",
+          authDomain: "siamsi-3dd65.firebaseapp.com",
+          projectId: "siamsi-3dd65",
+          storageBucket: "siamsi-3dd65.firebasestorage.app",
+          messagingSenderId: "675720995739",
+          appId: "1:675720995739:web:1af5223781df968289373e",
+          measurementId: "G-P5TVSQ6V7X"
+        };
 
         // =========================================================================
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        setPersistence(auth, browserLocalPersistence);
         const db = getFirestore(app);
         const functions = getFunctions(app);
         const createTransaction = httpsCallable(functions, 'createMidtransTransaction');
@@ -342,7 +341,10 @@
 
         closeMessageBtn.addEventListener('click', () => messagePopup.classList.add('hidden'));
 
-        async function setupUserAndListener(user) {
+        // =========================================================================
+        // PERBAIKAN 1 & 2: Alur Autentikasi dan Inisialisasi Aplikasi Diperbaiki
+        // =========================================================================
+        async function initializeAppForUser(user) {
             if (unsubscribeUserListener) unsubscribeUserListener();
             
             currentUser = user;
@@ -354,7 +356,7 @@
                     isUserAdmin = data.role === 'admin';
                     isPremiumUser = data.isPremium === true;
                     freeAttemptsLeft = data.freeAttemptsLeft ?? 2;
-                    if (data.displayName && data.displayName !== 'Anonymous User' && !nameInput.value) {
+                    if (data.displayName && !user.isAnonymous && !nameInput.value) {
                         nameInput.value = data.displayName;
                     }
                 } else {
@@ -362,29 +364,47 @@
                     isPremiumUser = false;
                     freeAttemptsLeft = 2;
                 }
+                // Selalu perbarui UI dan cek hash setelah data pengguna termuat/berubah
                 updateUIBasedOnUserState();
+                checkUrlHash(); 
             });
         }
         
+        // Listener utama untuk semua perubahan status autentikasi
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Jika ada pengguna (baik yang login maupun anonim), inisialisasi aplikasi
+                await initializeAppForUser(user);
+            } else {
+                // Jika tidak ada pengguna SAMA SEKALI, buat sesi anonim baru.
+                // onAuthStateChanged akan terpanggil lagi setelah ini dengan user anonim.
+                try {
+                    await signInAnonymously(auth);
+                } catch (error) {
+                    console.error("Gagal login anonim:", error);
+                    showMessage('Error Kritis', 'Gagal memulai sesi. Coba refresh halaman.');
+                }
+            }
+        });
+        
+        // Memastikan persistensi di-set SEBELUM listener onAuthStateChanged berjalan
+        setPersistence(auth, browserLocalPersistence);
+        // =========================================================================
+
         function updateUIBasedOnUserState() {
             const canShake = nameInput.value.trim() !== '' && (isPremiumUser || freeAttemptsLeft > 0 || isUserAdmin);
             shakeBtn.disabled = !canShake;
         }
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                setupUserAndListener(user);
-            } else {
-                signInAnonymously(auth).catch(error => {
-                    console.error("Gagal login anonim:", error);
-                    showMessage('Error Kritis', 'Gagal memuat sesi Anda. Coba refresh halaman.');
-                });
-            }
-        });
-
         // CMS Logic
         function checkUrlHash() {
-            if (window.location.hash !== '#admin') return;
+            if (window.location.hash !== '#admin') {
+                appContainer.classList.remove('hidden');
+                adminLoginSection.classList.add('hidden');
+                adminCmsSection.classList.add('hidden');
+                return;
+            }
+            
             appContainer.classList.add('hidden');
             if (isUserAdmin) {
                 adminCmsSection.classList.remove('hidden');
@@ -402,10 +422,20 @@
         loginBtn.addEventListener('click', () => {
             const email = document.getElementById('adminEmail').value;
             const password = document.getElementById('adminPassword').value;
-            signInWithEmailAndPassword(auth, email, password).catch(error => showMessage('Login Gagal', error.message));
+            signInWithEmailAndPassword(auth, email, password)
+              .catch(error => showMessage('Login Gagal', error.message));
         });
 
-        logoutBtn.addEventListener('click', () => signOut(auth).then(() => { window.location.hash = ''; }));
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => { 
+                // Reset state lokal setelah logout
+                isUserAdmin = false;
+                // Pindah ke halaman utama
+                window.location.hash = ''; 
+                // Muat ulang untuk memulai sesi anonim yang bersih
+                window.location.reload();
+            });
+        });
 
         async function initCms() {
             if (ramalanNumberSelect.options.length > 0) return;
@@ -470,6 +500,7 @@
         });
 
         shakeBtn.addEventListener('click', () => {
+            if (!currentUser) return; // Tambahan keamanan
             if (!isPremiumUser && freeAttemptsLeft <= 0 && !isUserAdmin) {
                 paymentPopup.classList.remove('hidden');
                 return;
@@ -535,11 +566,22 @@
                         li.textContent = item;
                         pedomanList.appendChild(li);
                     });
+                    
                     predictionResult.classList.remove('hidden');
                     shakeBtn.disabled = true;
+                    
+                    // =================================================================
+                    // PERBAIKAN 3: Isolasi proses update jatah agar tidak menyembunyikan hasil
+                    // =================================================================
                     if (!isPremiumUser && !isUserAdmin) {
-                        await updateDoc(doc(db, "users", currentUser.uid), { freeAttemptsLeft: increment(-1) });
+                        try {
+                           await updateDoc(doc(db, "users", currentUser.uid), { freeAttemptsLeft: increment(-1) });
+                        } catch (updateError) {
+                            console.error("Gagal mengurangi jatah gratis, tapi hasil tetap ditampilkan:", updateError);
+                        }
                     }
+                    // =================================================================
+                    
                 } else {
                     showMessage('Data Kosong', `Data ramalan nomor ${currentPredictionNumberState} belum diisi.`);
                     resetState();
@@ -548,7 +590,7 @@
                 console.error("Gagal mengambil data ramalan:", error);
                 showMessage('Error', 'Gagal memuat data ramalan.');
                 resetState();
-}
+            }
         }
         
         // Payment and Registration Flow
@@ -569,18 +611,22 @@
             });
         });
 
-        const handleAuthSuccess = async (userCredential) => {
+        const handleAuthSuccess = async (userCredential, displayName) => {
             const user = userCredential.user;
             const userDocRef = doc(db, "users", user.uid);
-            await setDoc(userDocRef, {
-                displayName: user.displayName,
-                email: user.email,
-                isPremium: false,
-                freeAttemptsLeft: maxThrowsFree,
-                createdAt: serverTimestamp(),
-                provider: 'email'
-            }, { merge: true });
             
+            // Cek apakah dokumen sudah ada atau belum
+            const docSnap = await getDoc(userDocRef);
+            if (!docSnap.exists()) {
+                 await setDoc(userDocRef, {
+                    displayName: displayName || user.displayName,
+                    email: user.email,
+                    isPremium: false,
+                    freeAttemptsLeft: maxThrowsFree,
+                    createdAt: serverTimestamp()
+                });
+            }
+           
             registrationPopup.classList.add('hidden');
             confirmPaymentPopup.classList.remove('hidden');
             authError.style.display = 'none';
@@ -588,18 +634,24 @@
         
         const handleAuthError = (error) => {
             authError.style.display = 'block';
-            authError.textContent = 'Terjadi kesalahan. Coba lagi.';
+            if (error.code === 'auth/email-already-in-use') {
+                authError.textContent = 'Email sudah terdaftar. Silakan login.';
+            } else {
+                authError.textContent = 'Terjadi kesalahan. Coba lagi.';
+            }
         };
 
         registerBtn.addEventListener('click', async () => {
             const name = document.getElementById('regName').value.trim();
             const email = document.getElementById('regEmail').value.trim();
             const password = document.getElementById('regPassword').value;
-            if (!name || !email || !password) return showMessage('Data Tidak Lengkap', 'Harap isi semua field.');
+            if (!name || !email || password.length < 6) {
+                return showMessage('Data Tidak Lengkap', 'Harap isi semua field. Password minimal 6 karakter.');
+            }
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 await updateProfile(userCredential.user, { displayName: name });
-                await handleAuthSuccess(userCredential);
+                await handleAuthSuccess(userCredential, name);
             } catch (error) { handleAuthError(error); }
         });
 
@@ -610,7 +662,10 @@
             try {
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 await handleAuthSuccess(userCredential);
-            } catch (error) { handleAuthError(error); }
+            } catch (error) { 
+                authError.style.display = 'block';
+                authError.textContent = 'Login gagal. Periksa kembali email dan password Anda.';
+            }
         });
         
         cancelRegistrationBtn.addEventListener('click', () => {
@@ -621,8 +676,8 @@
 
         confirmRealPayment.addEventListener('click', async () => {
             const userName = nameInput.value.trim();
-            if (!userName) {
-                showMessage('Peringatan', 'Harap isi "Nama Lengkap" Anda di halaman utama.');
+            if (!userName && currentUser.isAnonymous) {
+                showMessage('Peringatan', 'Harap isi nama Anda di halaman utama sebelum melanjutkan.');
                 confirmPaymentPopup.classList.add('hidden');
                 return; 
             }
@@ -630,16 +685,22 @@
             btn.disabled = true;
             btn.textContent = "Memproses...";
             try {
-                const result = await createTransaction({ name: userName, price: selectedPackage.price, attempts: selectedPackage.attempts });
+                // Gunakan nama dari profil pengguna jika ada, jika tidak gunakan dari input
+                const finalUserName = currentUser.displayName || userName;
+                const result = await createTransaction({ 
+                    name: finalUserName, 
+                    price: selectedPackage.price, 
+                    attempts: selectedPackage.attempts 
+                });
                 window.snap.pay(result.data.token, {
                     onSuccess: () => { showMessage('Sukses', 'Pembayaran berhasil!'); confirmPaymentPopup.classList.add('hidden'); resetState(); },
                     onPending: () => showMessage('Pending', 'Menunggu konfirmasi pembayaran.'),
                     onError: () => showMessage('Gagal', 'Pembayaran gagal.'),
-                    onClose: () => console.log('Popup pembayaran ditutup.')
+                    onClose: () => console.log('Popup pembayaran ditutup oleh pengguna.')
                 });
             } catch (error) {
                 console.error('Error memanggil Cloud Function:', error);
-                showMessage('Error Server', `Gagal memproses pembayaran. (${error.message})`);
+                showMessage('Error Server', `Gagal memproses pembayaran. Silakan coba lagi nanti.`);
             } finally {
                 btn.disabled = false;
                 btn.textContent = "Lanjut ke Midtrans";
