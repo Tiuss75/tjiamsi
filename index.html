@@ -519,34 +519,42 @@
             }, 800);
         });
 
-        throwBtn.addEventListener('click', async () => {
-            throwBtn.disabled = true;
-            throwCount++;
-            throwCountElement.textContent = throwCount;
-            puakpois.forEach(poi => poi.classList.add('throw-animation'));
-            setTimeout(() => puakpois.forEach(p => p.classList.remove('throw-animation')), 800);
+        // GANTI FUNGSI LAMA DENGAN YANG INI
+throwBtn.addEventListener('click', async () => {
+    throwBtn.disabled = true;
+    throwCount++;
+    throwCountElement.textContent = throwCount;
+    puakpois.forEach(poi => poi.classList.add('throw-animation'));
+    setTimeout(() => puakpois.forEach(p => p.classList.remove('throw-animation')), 800);
 
-            setTimeout(async () => {
-                const result1 = Math.round(Math.random());
-                const result2 = Math.round(Math.random());
-                puakpois[0].textContent = result1 === 0 ? '凹' : '凸';
-                puakpois[1].textContent = result2 === 0 ? '凹' : '凸';
-                const isConfirmed = result1 !== result2;
-                throwResult.classList.remove('hidden');
+    setTimeout(async () => {
+        const result1 = Math.round(Math.random());
+        const result2 = Math.round(Math.random());
+        puakpois[0].textContent = result1 === 0 ? '凹' : '凸';
+        puakpois[1].textContent = result2 === 0 ? '凹' : '凸';
+        const isConfirmed = result1 !== result2;
+        throwResult.classList.remove('hidden');
 
-                if (isConfirmed) {
-                    throwResultText.textContent = 'Hasil: Direstui Dewa!';
-                    await showPrediction();
-                } else {
-                    throwResultText.textContent = 'Hasil: Belum direstui. Coba lagi.';
-                    if (isPremiumUser || throwCount < maxThrowsFree || isUserAdmin) {
-                        throwBtn.disabled = false;
-                    } else {
-                        throwResultText.textContent = 'Batas lemparan tercapai. Silakan kocok ulang.';
-                    }
-                }
-            }, 900);
-        });
+        if (isConfirmed) {
+            throwResultText.textContent = 'Hasil: Direstui Dewa!';
+            await showPrediction();
+        } else {
+            // ▼▼▼ PERBAIKAN LOGIKA ADA DI SINI ▼▼▼
+            const hasReachedLimit = throwCount >= maxThrowsFree;
+
+            // Cek HANYA untuk pengguna gratis yang sudah mencapai batas
+            if (hasReachedLimit && !isPremiumUser && !isUserAdmin) {
+                throwResultText.textContent = 'Batas lemparan tercapai. Silakan kocok ulang.';
+                // Tombol tetap disabled (tidak diaktifkan kembali)
+            } else {
+                // Untuk admin, premium, ATAU pengguna gratis yang masih punya jatah
+                throwResultText.textContent = 'Hasil: Belum direstui. Coba lagi.';
+                throwBtn.disabled = false; // Aktifkan kembali tombol untuk lemparan berikutnya
+            }
+            // ▲▲▲ AKHIR DARI PERBAIKAN LOGIKA ▲▲▲
+        }
+    }, 900);
+});
 
         async function showPrediction() {
             if (!currentPredictionNumberState) return;
