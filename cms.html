@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ramalan Chiam Si - PWA</title>
+    <meta name="theme-color" content="#9c1c26">
+    <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="img/icon-192x192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Inter:wght@400;600;700&display=swap');
+        :root { --primary-red: #9c1c26; --dark-red: #7a0a14; --gold: #d4af37; --light-gold: #f8ecc2; --dark-gold: #b8860b; --black: #2c2416; --white: #f8f4e9; --font-main: 'Inter', sans-serif; --font-display: 'Noto Serif SC', serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-main); background-color: var(--primary-red); background-image: linear-gradient(135deg, rgba(122,10,20,.8), rgba(28,5,7,.9)); color: var(--white); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { max-width: 800px; width: 100%; background: rgba(44,36,22,.85); border-radius: 20px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,.6); border: 3px solid var(--gold); backdrop-filter: blur(5px); margin-bottom: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { font-family: var(--font-display); font-size: 2.5rem; color: var(--gold); text-shadow: 0 3px 5px rgba(0,0,0,.7); }
+        .btn { background: var(--gold); color: var(--black); border: none; padding: 12px 25px; font-size: 1.1rem; font-weight: 600; border-radius: 50px; cursor: pointer; transition: all .3s ease; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,.3); text-decoration: none; }
+        .btn:hover { background: var(--light-gold); transform: translateY(-3px); }
+        .hidden { display: none !important; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: var(--light-gold); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--dark-gold); font-size: 1rem; background-color: var(--light-gold); color: var(--black); }
+        .form-group textarea { min-height: 100px; resize: vertical; }
+        #cmsCmsSection h2, #cmsLoginSection h2 { color: var(--gold); }
+    </style>
+</head>
+<body>
+
+    <div id="appContainer" class="container hidden">
+        <div class="header">
+            <h1>Ramalan Chiam Si</h1>
+            <p>Buka <a href="/#cms" style="color: var(--gold);">halaman admin</a> untuk mengelola konten.</p>
+        </div>
+        </div>
+
+    <div id="adminLoginSection" class="container hidden">
+        <h2>Login Admin</h2>
+        <div class="form-group">
+            <label for="adminEmail">Email</label>
+            <input type="email" id="adminEmail" placeholder="admin@example.com">
+        </div>
+        <div class="form-group">
+            <label for="adminPassword">Password</label>
+            <input type="password" id="adminPassword" placeholder="******">
+        </div>
+        <button id="loginBtn" class="btn" style="width: 100%;">Login</button>
+    </div>
+
+    <div id="adminCmsSection" class="container hidden">
+        <h2>CMS Ramalan Chiam Si <button id="logoutBtn" class="btn" style="float: right;">Logout</button></h2>
+        <p style="margin-bottom: 20px;">Anda berhasil login sebagai admin. Silakan kelola konten ramalan di bawah ini.</p>
+        
+        <div class="form-group">
+            <label for="ramalanNumberSelect">Pilih Nomor Ramalan untuk Diedit</label>
+            <select id="ramalanNumberSelect"></select>
+        </div>
+        <div class="form-group">
+            <label for="dewaInput">Nama Dewa</label>
+            <input type="text" id="dewaInput">
+        </div>
+        <div class="form-group">
+            <label for="sinthioInput">Makna Lambang (Sin Thio)</label>
+            <textarea id="sinthioInput"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="syairInput">Bunyi Syair</label>
+            <textarea id="syairInput"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="selayangPandangInput">Selayang Pandang</label>
+            <textarea id="selayangPandangInput"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="pedomanInput">Pedoman Jawaban (Pisahkan dengan baris baru)</label>
+            <textarea id="pedomanInput" placeholder="PERDAGANGAN BERJALAN BIASA&#10;MENCARI HARTA BANYAK KOSONG"></textarea>
+        </div>
+        <button id="saveBtn" class="btn" style="width: 100%;">Simpan Perubahan</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // =========================================================================
+        // PENTING: Ganti dengan konfigurasi Firebase Anda yang BENAR
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyA93UxOEya10fRfOPpbOT4PfSmA_aaQx-E",
+            authDomain: "siamsi-3dd65.firebaseapp.com",
+            projectId: "siamsi-3dd65",
+            storageBucket: "siamsi-3dd65.appspot.com",
+            messagingSenderId: "675720995739",
+            appId: "1:675720995739:web:1af5223781df968289373e",
+            measurementId: "G-P5TVSQ6V7X"
+        };
+        // =========================================================================
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const appContainer = document.getElementById('appContainer');
+        const adminLoginSection = document.getElementById('adminLoginSection');
+        const adminCmsSection = document.getElementById('adminCmsSection');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const adminEmailInput = document.getElementById('adminEmail');
+        const adminPasswordInput = document.getElementById('adminPassword');
+        // CMS Form Elements
+        const ramalanNumberSelect = document.getElementById('ramalanNumberSelect');
+        const dewaInput = document.getElementById('dewaInput');
+        const sinthioInput = document.getElementById('sinthioInput');
+        const syairInput = document.getElementById('syairInput');
+        const selayangPandangInput = document.getElementById('selayangPandangInput');
+        const pedomanInput = document.getElementById('pedomanInput');
+        const saveBtn = document.getElementById('saveBtn');
+
+        function showPage(pageId) {
+            appContainer.classList.add('hidden');
+            adminLoginSection.classList.add('hidden');
+            adminCmsSection.classList.add('hidden');
+            if (pageId) {
+                document.getElementById(pageId)?.classList.remove('hidden');
+            }
+        }
+
+        async function initCms() {
+            if (ramalanNumberSelect.options.length > 0) return; // Mencegah inisialisasi ganda
+            for (let i = 1; i <= 100; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Nomor ${i}`;
+                ramalanNumberSelect.appendChild(option);
+            }
+            await loadRamalanData(1);
+        }
+
+        async function loadRamalanData(number) {
+            try {
+                const docRef = doc(db, "ramalan", String(number));
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    dewaInput.value = data.dewa || '';
+                    sinthioInput.value = data.sinthio || '';
+                    syairInput.value = data.syair || '';
+                    selayangPandangInput.value = data.selayangPandang || '';
+                    pedomanInput.value = (data.pedoman || []).join('\n');
+                } else {
+                    // Kosongkan form jika data tidak ada
+                    [dewaInput, sinthioInput, syairInput, selayangPandangInput, pedomanInput].forEach(input => input.value = '');
+                }
+            } catch(error) {
+                console.error("Error loading prediction data:", error);
+                alert("Gagal memuat data ramalan. Cek Security Rules Anda.");
+            }
+        }
+        
+        function handleRouting() {
+            const isAdminPage = window.location.hash === '#cms';
+            if (isAdminPage) {
+                if (auth.currentUser) {
+                    // Jika sudah ada user, biarkan onAuthStateChanged yang menangani
+                } else {
+                    showPage('adminLoginSection');
+                }
+            } else {
+                showPage('appContainer');
+            }
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            const isAdminPage = window.location.hash === '#cms';
+            if (user) {
+                const userDocRef = doc(db, "users", user.uid);
+                try {
+                    const docSnap = await getDoc(userDocRef);
+                    if (docSnap.exists() && docSnap.data().role === 'admin') {
+                        if (isAdminPage) {
+                            showPage('adminCmsSection');
+                            await initCms();
+                        } else {
+                            showPage('appContainer');
+                        }
+                    } else {
+                        if (isAdminPage) {
+                            alert("Anda tidak memiliki akses admin.");
+                            window.location.hash = ''; // Kembali ke halaman utama
+                        }
+                        showPage('appContainer');
+                    }
+                } catch (error) {
+                    console.error("Error verifying admin status:", error);
+                    alert("Gagal memverifikasi status admin. Silakan coba lagi.");
+                    signOut(auth);
+                }
+            } else {
+                handleRouting();
+            }
+        });
+        
+        // Event Listeners
+        window.addEventListener('hashchange', handleRouting);
+        document.addEventListener('DOMContentLoaded', handleRouting);
+
+        loginBtn.addEventListener('click', () => {
+            const email = adminEmailInput.value;
+            const password = adminPasswordInput.value;
+            signInWithEmailAndPassword(auth, email, password)
+                .catch((error) => alert("Login Gagal: " + error.message));
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => {
+                window.location.hash = ''; // Kembali ke halaman utama setelah logout
+                showPage('appContainer'); // Tampilkan halaman utama
+            }).catch((error) => alert("Logout Gagal: " + error.message));
+        });
+
+        ramalanNumberSelect.addEventListener('change', (e) => loadRamalanData(e.target.value));
+
+        saveBtn.addEventListener('click', async () => {
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Menyimpan...";
+            const number = ramalanNumberSelect.value;
+            const dataToSave = {
+                nomor: parseInt(number),
+                dewa: dewaInput.value,
+                sinthio: sinthioInput.value,
+                syair: syairInput.value,
+                selayangPandang: selayangPandangInput.value,
+                pedoman: pedomanInput.value.split('\n').filter(line => line.trim() !== '')
+            };
+            try {
+                await setDoc(doc(db, "ramalan", number), dataToSave, { merge: true });
+                alert(`Data untuk nomor ${number} berhasil disimpan.`);
+            } catch (error) {
+                console.error("Save error:", error);
+                alert("Gagal menyimpan data. Cek koneksi dan Security Rules Anda.");
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Simpan Perubahan";
+            }
+        });
+    </script>
+</body>
+</html>
