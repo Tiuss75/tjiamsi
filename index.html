@@ -1,117 +1,48 @@
-<meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> <title>Ramalan Chiam Si - PWA</title> <meta name="theme-color" content="#9c1c26"> <link rel="manifest" href="manifest.json" crossorigin="use-credentials"> <link rel="icon" href="favicon.ico" type="image/x-icon"> <link rel="apple-touch-icon" href="favicon-512.png" type="image/png"> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> <script type="text/javascript" src="https://app.midtrans.com/snap/snap.js" data-client-key="SB-Mid-client-hCnSsq93YoH_kXLO">
-</script> <div id="appContainer" class="container"> <div class="menu"> <button id="goToPayment" class="btn">
-<link rel="stylesheet"href="styles.css">
-    <i class="fas fa-crown">
-</i> Upgrade Sekarang</button> </div> <div class="header"> <h1>Ramalan Chiam Si</h1> <p>Petunjuk ilahi untuk langkah hidup Anda</p> </div> <div class="step"> <div class="step-title">
-<i class="fas fa-user">
-</i>
-<h2>Data Diri</h2>
-</div> <input type="text" id="nameInput" placeholder="Ketik nama Anda..." class="name-input"> </div> <div class="step"> <div class="step-title">
-<i class="fas fa-praying-hands">
-</i>
-<h2>Kocok Tabung</h2>
-</div> <p>Fokuskan pikiran, lalu kocok tabung untuk mendapat nomor ramalan.</p> <div class="ciamsi-shaker-container"> <div class="ciamsi-container" id="ciamsiContainer">
-<div class="ciamsi-body">
-<div class="ciamsi-logo">簽</div>
-</div>
-</div> <div class="falling-stick" id="fallingStick">
-</div> </div> <div style="text-align: center;">
-<button id="shakeBtn" class="btn" disabled="">
-<i class="fas fa-hand-point-right">
-</i> Kocok</button>
-</div> <div class="result-container hidden" id="shakeResult" style="text-align:center; margin-top:15px;"> <p>Anda mendapatkan nomor ramalan:</p> <div class="result-number" id="predictionNumber" style="font-size: 2rem; font-weight: bold; color: var(--gold);">-</div> </div> </div> <div class="step"> <div class="step-title">
-<i class="fas fa-moon">
-</i>
-<h2>Lempar Puak Poi</h2>
-</div> <p>Lemparkan Puak Poi untuk memohon restu dewa.</p> <div class="puak-poi-container"> <div class="puak-poi" id="puakpoi1">-</div> <div class="puak-poi" id="puakpoi2">-</div> </div> <div class="throw-counter" style="text-align:center; margin-bottom:15px;">Lemparan ke: <span id="throwCount">0</span>/3</div> <div style="text-align: center;">
-<button id="throwBtn" class="btn" disabled="">
-<i class="fas fa-hand-point-right">
-</i> Lempar</button>
-</div> <div class="result-container hidden" id="throwResult" style="text-align:center; margin-top:15px;">
-<p id="throwResultText">Hasil lemparan: -</p>
-</div> </div> <div class="hidden" id="predictionResult"> <div class="prediction-card" id="predictionCard"> <div class="card-header"> <div> <div class="card-title">Hasil Ramalan</div> <div class="card-dewa" id="resultDewa">Dewa: -</div> </div> <div class="card-number" id="resultNumber">-</div> </div> <div class="prediction-section">
-<h3>Makna Lambang</h3>
-<p id="sinthioText">-</p>
-</div> <div class="prediction-section">
-<h3>Bunyi Syair</h3>
-<p id="syairText">-</p>
-</div> <div class="prediction-section">
-<h3>Selayang Pandang</h3>
-<p id="selayangPandangText">-</p>
-</div> <div class="prediction-section pedoman-jawaban">
-<h3>Pedoman Jawaban</h3>
-<ul id="pedomanList">
-</ul>
-</div> </div> <div class="action-buttons"> <a href="#" class="btn whatsapp-share" id="whatsappShare">
-<i class="fab fa-whatsapp">
-</i> Bagikan</a> <button class="btn download-btn" id="downloadBtn">
-<i class="fas fa-download">
-</i> Unduh</button> </div> </div> </div> <div id="adminLoginSection" class="admin-section hidden"> <div class="admin-form"> <h2>Login Admin</h2> <div class="form-group">
-<label for="adminEmail">Email</label>
-<input type="email" id="adminEmail" placeholder="admin@example.com">
-</div> <div class="form-group">
-<label for="adminPassword">Password</label>
-<input type="password" id="adminPassword" placeholder="******">
-</div> <button id="loginBtn" class="btn" style="width: 100%;">Login</button> </div> </div> <div id="adminCmsSection" class="container hidden" style="margin-top: 20px;"> <h2>CMS Ramalan Chiam Si <button id="logoutBtn" class="btn" style="float: right;">Logout</button>
-</h2> <div class="form-group">
-<label for="ramalanNumberSelect">Pilih Nomor Ramalan</label>
-<select id="ramalanNumberSelect">
-</select>
-</div> <div class="form-group">
-<label for="dewaInput">Nama Dewa</label>
-<input type="text" id="dewaInput" placeholder="Contoh: KAK CU">
-</div> <div class="form-group">
-<label for="sinthioInput">Makna Lambang</label>
-<textarea id="sinthioInput">
-</textarea>
-</div> <div class="form-group">
-<label for="syairInput">Bunyi Syair</label>
-<textarea id="syairInput">
-</textarea>
-</div> <div class="form-group">
-<label for="selayangPandangInput">Selayang Pandang</label>
-<textarea id="selayangPandangInput">
-</textarea>
-</div> <div class="form-group"> <label for="pedomanInput">Pedoman Jawaban (satu per baris)</label> <textarea id="pedomanInput" placeholder="PERDAGANGAN BERJALAN BIASA
-MENCARI HARTA BANYAK KOSONG">
-</textarea> </div> <button id="saveBtn" class="btn" style="width: 100%;">Simpan Perubahan</button> </div> <div id="registrationPopup" class="popup-overlay hidden"> <div class="popup-content"> <h2>Daftar Akun Premium</h2> <p>Buat akun untuk menyimpan status premium Anda. Jika sudah punya akun, silakan login.</p> <div class="form-group">
-<label for="regName">Nama Lengkap</label>
-<input type="text" id="regName" placeholder="Nama Anda">
-</div> <div class="form-group">
-<label for="regEmail">Email</label>
-<input type="email" id="regEmail" placeholder="email@anda.com">
-</div> <div class="form-group">
-<label for="regPassword">Password (min. 6 karakter)</label>
-<input type="password" id="regPassword" placeholder="******">
-</div> <div id="authError" style="color:red; text-align:center; margin-bottom:10px; display:none;">
-</div> <div class="popup-buttons"> <button id="registerBtn" class="btn">Daftar &amp; Lanjut Bayar</button> <button id="loginAndPayBtn" class="btn" style="background-color: #555; color: white;">Login &amp; Lanjut Bayar</button> <button id="cancelRegistrationBtn" class="btn" style="background-color: var(--dark-red); color: var(--white);">Batal</button> </div> </div> </div> <div id="paymentPopup" class="popup-overlay hidden"> <div class="popup-content" style="max-width: 600px;"> <h2>Upgrade ke Premium</h2> <p>Pilih paket untuk melanjutkan ramalan tanpa batas:</p> <div class="package-option" data-attempts="5" data-price="25000"> <h4>🎯 Paket 5 Kali Kocok</h4> <p>
-<strong>Harga: Rp 25.000</strong>
-</p>
-<p>Cocok untuk penggunaan sekali waktu.</p> </div> <div class="package-option" data-attempts="12" data-price="50000"> <h4>🚀 Paket 12 Kali Kocok</h4> <p>
-<strong>Harga: Rp 50.000</strong>
-</p>
-<p>Lebih hemat! Ideal untuk pengguna aktif.</p> </div> <div class="popup-buttons" style="margin-top: 20px;">
-<button id="closePaymentPopup" class="btn" style="background-color: var(--dark-red); color: var(--white);">Batal</button>
-</div> </div> </div> <div id="confirmPaymentPopup" class="popup-overlay hidden"> <div class="popup-content"> <h2>Proses Pembayaran</h2> <p id="confirmText">Anda akan membayar <strong>Rp <span id="priceDisplay">0</span>
-</strong> untuk <span id="attemptsDisplay">0</span> kali kocok tambahan.</p> <div class="popup-buttons"> <button id="confirmRealPayment" class="btn">Lanjut ke Midtrans</button> <button id="cancelConfirm" class="btn" style="background-color: var(--dark-red); color: var(--white);">Batal</button> </div> </div> </div> <div id="messagePopup" class="popup-overlay hidden"> <div class="popup-content"> <h2 id="messageTitle">Pemberitahuan</h2>
-<p id="messageText">
-</p> <div class="popup-buttons">
-<button id="closeMessageBtn" class="btn">Tutup</button>
-</div> </div> </div> <div id="termsPopup" class="popup-overlay hidden"> <div class="popup-content popup-content-legal"> <h2>Syarat &amp; Ketentuan</h2> <p style="text-align:left;">Selamat datang di aplikasi Ramalan Chiam Si. Dengan menggunakan aplikasi ini, Anda setuju untuk mematuhi syarat dan ketentuan berikut:</p>
-<h4 style="text-align:left; margin-top:15px;">1. Tujuan Aplikasi</h4>
-<p style="text-align:left;">Aplikasi ini disediakan untuk tujuan hiburan, refleksi diri, dan pelestarian budaya. Hasil yang diberikan tidak boleh dianggap sebagai nasihat profesional (keuangan, hukum, medis, dll.) dan tidak dijamin akurat 100%.</p>
-<h4 style="text-align:left; margin-top:15px;">2. Layanan Berbayar</h4>
-<p style="text-align:left;">Kami menawarkan akses premium berbayar untuk penggunaan tanpa batas. Pembayaran diproses melalui Midtrans. Semua transaksi bersifat final dan tidak dapat dikembalikan (non-refundable) setelah pembayaran berhasil.</p>
-<h4 style="text-align:left; margin-top:15px;">3. Batasan Tanggung Jawab</h4>
-<p style="text-align:left;">Pengembang tidak bertanggung jawab atas keputusan atau tindakan apa pun yang Anda ambil berdasarkan interpretasi dari hasil yang diberikan oleh aplikasi ini.</p> <div class="popup-buttons" style="margin-top:20px;">
-<button class="btn close-popup-btn">Tutup</button>
-</div> </div> </div> <div id="privacyPopup" class="popup-overlay hidden"> <div class="popup-content popup-content-legal"> <h2>Kebijakan Privasi</h2> <p style="text-align:left;">Kami menghargai privasi Anda. Dokumen ini menjelaskan bagaimana kami mengumpulkan dan menggunakan data Anda.</p>
-<h4 style="text-align:left; margin-top:15px;">1. Data yang Kami Kumpulkan</h4>
-<p style="text-align:left;">Aplikasi ini menggunakan Firebase Authentication. Kami mengumpulkan User ID, nama, dan email saat Anda mendaftar. Kami tidak mengumpulkan data pribadi lain di luar proses ini.</p>
-<h4 style="text-align:left; margin-top:15px;">2. Penggunaan Data</h4>
-<p style="text-align:left;">User ID, nama, dan email digunakan untuk membedakan antara pengguna gratis dan premium, serta untuk melacak status pembelian dan jatah kocokan. Data ini disimpan dengan aman di server Firebase dan tidak akan dibagikan kepada pihak ketiga.</p> <div class="popup-buttons" style="margin-top:20px;">
-<button class="btn close-popup-btn">Tutup</button>
-</div> </div> </div> <footer> <p>© 2025 Ramalan Chiam Si. All Rights Reserved.</p> <div style="margin-top: 10px;"> <a id="termsLink">Syarat &amp; Ketentuan</a> | <a id="privacyLink">Kebijakan Privasi</a> | <a href="mailto:ramalanchiamsi@gmail.com">Kontak Kami</a> </div> </footer> <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
-<script src="app.js"></script>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ramalan Chiam Si - PWA</title>
 
-</script>
+  <!-- warna theme PWA -->
+  <meta name="theme-color" content="#9c1c26">
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
+
+  <!-- Icon -->
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" href="favicon-512.png" type="image/png">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Midtrans Snap -->
+  <script 
+    type="text/javascript" 
+    src="https://app.midtrans.com/snap/snap.js" 
+    data-client-key="SB-Mid-client-hCnSsq93YoH_kXLO">
+  </script>
+</head>
+<body>
+  <!-- ===================== -->
+  <!-- ISI KONTEN KAMU DI SINI -->
+  <!-- ===================== -->
+
+  <footer>
+    <p>© 2025 Ramalan Chiam Si. All Rights Reserved.</p>
+    <div style="margin-top: 10px;">
+      <a id="termsLink">Syarat & Ketentuan</a> | 
+      <a id="privacyLink">Kebijakan Privasi</a> | 
+      <a href="mailto:ramalanchiamsi@gmail.com">Kontak Kami</a>
+    </div>
+  </footer>
+
+  <!-- JS Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- File JS kamu -->
+  <script src="app.js"></script>
+</body>
+</html>
