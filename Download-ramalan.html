@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Export Ramalan ke Excel</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <h1>Export Data Ramalan ke Excel</h1>
+  <button onclick="downloadExcel()">Download Excel</button>
+  <div id="status"></div>
+
+  <script>
+    // ✅ Config Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyA93UxOEya10fRfOPpbOT4PfSmA_aaQx-E",
+      authDomain: "siamsi-3dd65.firebaseapp.com",
+      projectId: "siamsi-3dd65",
+      storageBucket: "siamsi-3dd65.firebasestorage.app",
+      messagingSenderId: "675720995739",
+      appId: "1:675720995739:web:1af5223781df968289373e",
+      measurementId: "G-P5TVSQ6V7X"
+    };
+
+    // Deklarasikan db di scope global
+    let db;
+    
+    // Inisialisasi Firebase
+    try {
+      const app = firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore(); // Inisialisasi db di sini
+      document.getElementById('status').textContent = "Firebase berhasil diinisialisasi";
+      console.log("Firebase initialized successfully");
+    } catch (error) {
+      document.getElementById('status').textContent = "Error inisialisasi Firebase: " + error.message;
+      console.error("Firebase init error:", error);
+    }
+
+    // ✅ Export ke Excel
+    async function downloadExcel() {
+      try {
+        if (!db) {
+          throw new Error("Firestore belum terinisialisasi");
+        }
+        
+        document.getElementById('status').textContent = "Memulai proses download...";
+        console.log("Starting download process...");
+        
+        const snapshot = await db.collection("ramalan").get();
+        document.getElementById('status').textContent = "Data berhasil diambil dari Firestore";
+        console.log("Data retrieved from Firestore");
+
+        // Buat array JSON untuk SheetJS
+        let dataArr = [];
+        snapshot.forEach(doc => {
+          const d = doc.data();
+          dataArr.push({
+            "Nomor": d.nomor || "",
+            "Dewa": d.dewa || "",
+            "Makna Lambang": d.sinthio || "",
+            "Bunyi Syair": d.Syair || "",
+            "Selayang Pandang": d.selayangPandang || "",
+            "Pedoman Jawaban": d.pedoman || "",
+            "Arti Ramalan": d.artiRamalan || ""
+          });
+        });
+
+        if (dataArr.length === 0) {
+          document.getElementById('status').textContent = "Tidak ada data yang ditemukan";
+          console.warn("No data found in collection");
+          return;
+        }
+
+        // Konversi JSON → Worksheet
+        const ws = XLSX.utils.json_to_sheet(dataArr);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Ramalan");
+
+        // Simpan sebagai Excel file
+        XLSX.writeFile(wb, "ramalan.xlsx");
+        document.getElementById('status').textContent = "File Excel berhasil diunduh";
+        console.log("Excel file downloaded successfully");
+        
+      } catch (error) {
+        document.getElementById('status').textContent = "Error: " + error.message;
+        console.error("Download error:", error);
+      }
+    }
+  </script>
+</body>
+</html>
