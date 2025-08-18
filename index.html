@@ -17,7 +17,7 @@
         :root {
             --primary-red: #9c1c26; --dark-red: #7a0a14; --gold: #d4af37;
             --light-gold: #f8ecc2; --dark-gold: #b8860b; --black: #2c2416;
-            --white: #FFFFFF; /* Diubah menjadi putih murni */
+            --white: #FFFFFF;
             --font-main: 'Inter', sans-serif; --font-display: 'Noto Serif SC', serif;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -37,8 +37,12 @@
             font-family: var(--font-display); font-size: 2.5rem; color: var(--gold);
             text-shadow: 0 3px 5px rgba(0,0,0,.7); cursor: pointer; user-select: none;
         }
-        .menu { display: flex; justify-content: center; margin-bottom: 20px; }
-        .menu .btn { background-color: var(--dark-gold); color: var(--black); font-size: 1rem; padding: 10px 20px; }
+        .menu { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+        .search-container { display: flex; align-items: center; gap: 10px; }
+        .search-container input { width: 80px; padding: 8px; border-radius: 5px; border: 1px solid var(--dark-gold); }
+        .btn { background: var(--gold); color: var(--black); border: none; padding: 12px 25px; font-size: 1.1rem; font-weight: 600; border-radius: 50px; cursor: pointer; transition: all .3s ease; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,.3); text-decoration: none; }
+        .btn:hover { background: var(--light-gold); transform: translateY(-3px); }
+        .btn:disabled { background: #777; color: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
         .step { background: rgba(122,10,20,.6); border-radius: 15px; padding: 20px; margin-bottom: 25px; border: 2px solid var(--dark-gold); }
         .step-title { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; color: var(--gold); }
         .step-title i { font-size: 1.5rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background-color: var(--black); border: 2px solid var(--gold); }
@@ -57,12 +61,9 @@
         .puak-poi { width: 70px; height: 35px; background: #d2b48c; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: var(--black); font-weight: 700; box-shadow: 0 5px 15px rgba(0,0,0,.3); }
         .throw-animation { animation: throw .8s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes throw { 0%{transform:translateY(0) rotate(0)} 30%{transform:translateY(-80px) rotate(180deg)} 70%{transform:translateY(40px) rotate(360deg)} 100%{transform:translateY(0) rotate(720deg)} }
-        .btn { background: var(--gold); color: var(--black); border: none; padding: 12px 25px; font-size: 1.1rem; font-weight: 600; border-radius: 50px; cursor: pointer; transition: all .3s ease; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,.3); text-decoration: none; }
-        .btn:hover { background: var(--light-gold); transform: translateY(-3px); }
-        .btn:disabled { background: #777; color: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
         .prediction-card { 
-            background: #FFFFFF; /* Diubah menjadi putih murni */
-            color: #000000; /* Diubah menjadi hitam murni */
+            background: #FFFFFF; 
+            color: #000000; 
             border-radius: 15px; 
             padding: 25px; 
             margin: 30px 0; 
@@ -98,12 +99,22 @@
         .package-option p { margin: 5px 0 0 0; font-size: 0.95rem; color: var(--black); font-weight: 600; }
         footer { text-align: center; color: rgba(255,255,255,.7); margin-top: 30px; padding: 20px; border-top: 1px solid var(--dark-gold); }
         footer a { color: var(--light-gold); margin: 0 10px; cursor: pointer; }
+        .tab-container { margin-bottom: 20px; }
+        .tab-buttons { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .tab-button { padding: 10px 20px; border-radius: 10px; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; transition: background 0.3s; }
+        .tab-button.active { background: var(--gold); color: var(--black); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
     <div id="appContainer" class="container">
         <div class="menu">
             <button id="goToPayment" class="btn"><i class="fas fa-crown"></i> Upgrade Sekarang</button>
+            <div class="search-container">
+                <input type="number" id="searchInput" placeholder="No. Ramalan" min="1" max="100">
+                <button id="searchBtn" class="btn"><i class="fas fa-search"></i> Cari</button>
+            </div>
         </div>
         <div class="header">
             <h1>Ramalan Chiam Si</h1>
@@ -138,7 +149,7 @@
             <div class="result-container hidden" id="throwResult" style="text-align:center; margin-top:15px;"><p id="throwResultText">Hasil lemparan: -</p></div>
         </div>
         <div class="hidden" id="predictionResult">
-            <div class="prediction-card" id="predictionCard">
+            <div id="predictionCard">
                 <div class="card-header">
                     <div>
                         <div class="card-title">Hasil Ramalan</div>
@@ -146,14 +157,25 @@
                     </div>
                     <div class="card-number" id="resultNumber">-</div>
                 </div>
-                <div class="prediction-section"><h3>Makna Lambang</h3><p id="sinthioText">-</p></div>
-                <div class="prediction-section"><h3>Bunyi Syair</h3><p id="syairText">-</p></div>
-                <div class="prediction-section"><h3>Selayang Pandang</h3><p id="selayangPandangText">-</p></div>
-                <div class="prediction-section pedoman-jawaban"><h3>Pedoman Jawaban</h3><ul id="pedomanList"></ul></div>
+                <div class="tab-container">
+                    <div class="tab-buttons">
+                        <button class="tab-button active" data-tab="tab1">Hasil Ramalan</button>
+                        <button class="tab-button" data-tab="tab2">Arti Ramalan</button>
+                    </div>
+                    <div id="tab1" class="tab-content active">
+                        <div class="prediction-section"><h3>Makna Lambang</h3><p id="sinthioText">-</p></div>
+                        <div class="prediction-section"><h3>Bunyi Syair</h3><p id="syairText">-</p></div>
+                        <div class="prediction-section"><h3>Selayang Pandang</h3><p id="selayangPandangText">-</p></div>
+                        <div class="prediction-section pedoman-jawaban"><h3>Pedoman Jawaban</h3><ul id="pedomanList"></ul></div>
+                    </div>
+                    <div id="tab2" class="tab-content">
+                        <div class="prediction-section"><h3>Arti Ramalan</h3><p id="artiRamalanText">-</p></div>
+                    </div>
+                </div>
             </div>
             <div class="action-buttons">
                 <a href="#" class="btn whatsapp-share" id="whatsappShare"><i class="fab fa-whatsapp"></i> Bagikan</a>
-                <button class="btn download-btn" id="downloadBtn"><i class="fas fa-download"></i> Unduh</button>
+                <button class="btn download-btn" id="downloadBtn"><i class="fas fa-download"></i> Unduh JPG</button>
             </div>
         </div>
     </div>
@@ -172,6 +194,7 @@
         <div class="form-group"><label for="sinthioInput">Makna Lambang</label><textarea id="sinthioInput"></textarea></div>
         <div class="form-group"><label for="syairInput">Bunyi Syair</label><textarea id="syairInput"></textarea></div>
         <div class="form-group"><label for="selayangPandangInput">Selayang Pandang</label><textarea id="selayangPandangInput"></textarea></div>
+        <div class="form-group"><label for="artiRamalanInput">Arti Ramalan</label><textarea id="artiRamalanInput"></textarea></div>
         <div class="form-group">
             <label for="pedomanInput">Pedoman Jawaban (satu per baris)</label>
             <textarea id="pedomanInput" placeholder="PERDAGANGAN BERJALAN BIASA&#10;MENCARI HARTA BANYAK KOSONG"></textarea>
@@ -285,6 +308,7 @@
         const sinthioText = document.getElementById('sinthioText');
         const syairText = document.getElementById('syairText');
         const selayangPandangText = document.getElementById('selayangPandangText');
+        const artiRamalanText = document.getElementById('artiRamalanText');
         const pedomanList = document.getElementById('pedomanList');
         const loginBtn = document.getElementById('loginBtn');
         const logoutBtn = document.getElementById('logoutBtn');
@@ -293,6 +317,7 @@
         const sinthioInput = document.getElementById('sinthioInput');
         const syairInput = document.getElementById('syairInput');
         const selayangPandangInput = document.getElementById('selayangPandangInput');
+        const artiRamalanInput = document.getElementById('artiRamalanInput');
         const pedomanInput = document.getElementById('pedomanInput');
         const saveBtn = document.getElementById('saveBtn');
         const paymentPopup = document.getElementById('paymentPopup');
@@ -327,6 +352,10 @@
         const attemptsDisplay = document.getElementById('attemptsDisplay');
         const whatsappShareBtn = document.getElementById('whatsappShare');
         const downloadBtn = document.getElementById('downloadBtn');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
 
         // === App State ===
         let currentUser = null;
@@ -355,11 +384,19 @@
             const userDocRef = doc(db, "users", user.uid);
             
             unsubscribeUserListener = onSnapshot(userDocRef, async (docSnap) => {
+                const today = new Date().toDateString();
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     isUserAdmin = data.role === 'admin';
                     isPremiumUser = data.isPremium === true;
-                    freeAttemptsLeft = data.freeAttemptsLeft ?? 2; 
+
+                    if (data.lastShakeDate !== today) {
+                        freeAttemptsLeft = 2;
+                        await updateDoc(userDocRef, { freeAttemptsLeft: 2, lastShakeDate: today });
+                    } else {
+                        freeAttemptsLeft = data.freeAttemptsLeft ?? 2;
+                    }
+
                     if (data.displayName && !user.isAnonymous && !nameInput.value) {
                         nameInput.value = data.displayName;
                     }
@@ -374,6 +411,7 @@
                                 displayName: 'Anonymous User',
                                 isPremium: false,
                                 freeAttemptsLeft: 2,
+                                lastShakeDate: today,
                                 createdAt: serverTimestamp(),
                                 provider: 'anonymous'
                             });
@@ -393,6 +431,14 @@
         }
 
         // === Logika Utama & Event Listeners ===
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(button.dataset.tab).classList.add('active');
+            });
+        });
 
         // CMS Logic
         function checkUrlHash() {
@@ -444,7 +490,7 @@
             try {
                 const docRef = doc(db, "ramalan", String(number));
                 const docSnap = await getDoc(docRef);
-                const fields = { dewa: dewaInput, sinthio: sinthioInput, syair: syairInput, selayangPandang: selayangPandangInput };
+                const fields = { dewa: dewaInput, sinthio: sinthioInput, syair: syairInput, selayangPandang: selayangPandangInput, artiRamalan: artiRamalanInput };
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     for (const key in fields) fields[key].value = data[key] || '';
@@ -467,6 +513,7 @@
                 sinthio: sinthioInput.value.trim(),
                 syair: syairInput.value.trim(),
                 selayangPandang: selayangPandangInput.value.trim(),
+                artiRamalan: artiRamalanInput.value.trim(),
                 pedoman: pedomanInput.value.split('\n').filter(line => line.trim() !== '')
             };
             try {
@@ -488,6 +535,10 @@
             puakpois.forEach(p => p.textContent = '-');
             currentPredictionNumberState = null;
             updateUIBasedOnUserState();
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            tabButtons[0].classList.add('active');
+            tabContents[0].classList.add('active');
         }
 
         nameInput.addEventListener('input', () => {
@@ -513,6 +564,24 @@
                 throwBtn.disabled = false;
             }, 800);
         });
+        
+        searchBtn.addEventListener('click', () => {
+            const number = parseInt(searchInput.value, 10);
+            if (number >= 1 && number <= 100) {
+                searchRamalan(number);
+            } else {
+                showMessage('Input Tidak Valid', 'Mohon masukkan nomor ramalan antara 1 sampai 100.');
+            }
+        });
+        
+        async function searchRamalan(number) {
+            resetState();
+            currentPredictionNumberState = number;
+            predictionNumber.textContent = number;
+            shakeResult.classList.remove('hidden');
+            await showPrediction();
+        }
+
 
         throwBtn.addEventListener('click', async () => {
             throwBtn.disabled = true;
@@ -534,7 +603,7 @@
                     await showPrediction();
                 } else {
                     const hasReachedLimit = throwCount >= maxThrowsFree;
-                    if (hasReachedLimit && !isPremiumUser && !isUserAdmin) {
+                    if (hasReachedLimit) {
                         throwResultText.textContent = 'Batas lemparan tercapai. Silakan kocok ulang.';
                     } else {
                         throwResultText.textContent = 'Hasil: Belum direstui. Coba lagi.';
@@ -556,6 +625,7 @@
                     sinthioText.textContent = data.sinthio || 'Data belum diisi.';
                     syairText.textContent = data.syair || 'Data belum diisi.';
                     selayangPandangText.textContent = data.selayangPandang || 'Data belum diisi.';
+                    artiRamalanText.textContent = data.artiRamalan || 'Data belum diisi.';
                     pedomanList.innerHTML = '';
                     (data.pedoman || []).forEach(item => {
                         const li = document.createElement('li');
@@ -568,7 +638,8 @@
                     
                     if (!isPremiumUser && !isUserAdmin) {
                         try {
-                           await updateDoc(doc(db, "users", currentUser.uid), { freeAttemptsLeft: increment(-1) });
+                            const userDocRef = doc(db, "users", currentUser.uid);
+                            await updateDoc(userDocRef, { freeAttemptsLeft: increment(-1) });
                         } catch (updateError) {
                             console.error("Gagal mengurangi jatah gratis, tapi hasil tetap ditampilkan:", updateError);
                         }
@@ -677,16 +748,59 @@
             btn.textContent = "Memproses...";
             try {
                 const finalUserName = currentUser.displayName || userName;
+                const orderId = 'ciamsi-' + Date.now() + Math.random().toString(36).substr(2, 9);
+                
                 const result = await createTransaction({ 
                     name: finalUserName, 
                     price: selectedPackage.price, 
-                    attempts: selectedPackage.attempts 
+                    attempts: selectedPackage.attempts,
+                    orderId: orderId
                 });
                 window.snap.pay(result.data.token, {
-                    onSuccess: () => { showMessage('Sukses', 'Pembayaran berhasil!'); confirmPaymentPopup.classList.add('hidden'); resetState(); },
-                    onPending: () => showMessage('Pending', 'Menunggu konfirmasi pembayaran.'),
-                    onError: () => showMessage('Gagal', 'Pembayaran gagal.'),
-                    onClose: () => console.log('Popup pembayaran ditutup oleh pengguna.')
+                    onSuccess: async (res) => {
+                        console.log('Payment success:', res);
+                        if (currentUser) {
+                             await updateDoc(doc(db, "users", currentUser.uid), {
+                                isPremium: true
+                            });
+                            await setDoc(doc(db, "purchases", res.order_id), {
+                                status: 'success',
+                                userId: currentUser.uid,
+                                timestamp: serverTimestamp()
+                            });
+                        }
+                        showMessage('Sukses', 'Pembayaran berhasil! Status premium Anda telah diaktifkan.');
+                        confirmPaymentPopup.classList.add('hidden');
+                        resetState();
+                    },
+                    onPending: (res) => {
+                        console.log('Payment pending:', res);
+                        if (currentUser) {
+                            setDoc(doc(db, "purchases", res.order_id), {
+                                status: 'pending',
+                                userId: currentUser.uid,
+                                package: selectedPackage,
+                                timestamp: serverTimestamp()
+                            });
+                        }
+                        showMessage('Pending', 'Menunggu konfirmasi pembayaran.');
+                    },
+                    onError: (res) => {
+                        console.error('Payment error:', res);
+                        if (currentUser) {
+                            setDoc(doc(db, "purchases", res.order_id), {
+                                status: 'error',
+                                userId: currentUser.uid,
+                                package: selectedPackage,
+                                timestamp: serverTimestamp()
+                            });
+                        }
+                        showMessage('Gagal', 'Pembayaran gagal. Silakan coba lagi.');
+                    },
+                    onClose: () => {
+                        console.log('Popup pembayaran ditutup oleh pengguna.');
+                        showMessage('Pembayaran Dibatalkan', 'Anda membatalkan pembayaran.');
+                    }
                 });
             } catch (error) {
                 console.error('Error memanggil Cloud Function:', error);
@@ -719,6 +833,7 @@
                 `*Makna Lambang:*\n${sinthioText.textContent}\n\n` +
                 `*Bunyi Syair:*\n${syairText.textContent}\n\n` +
                 `*Selayang Pandang:*\n${selayangPandangText.textContent}\n\n` +
+                `*Arti Ramalan:*\n${artiRamalanText.textContent}\n\n` +
                 `*Pedoman Jawaban:*\n${pedomanText}\n\n` +
                 `Dapatkan ramalan Anda di: ${window.location.origin}`;
             window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
