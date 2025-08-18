@@ -61,13 +61,16 @@
         .puak-poi { width: 70px; height: 35px; background: #d2b48c; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: var(--black); font-weight: 700; box-shadow: 0 5px 15px rgba(0,0,0,.3); }
         .throw-animation { animation: throw .8s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes throw { 0%{transform:translateY(0) rotate(0)} 30%{transform:translateY(-80px) rotate(180deg)} 70%{transform:translateY(40px) rotate(360deg)} 100%{transform:translateY(0) rotate(720deg)} }
+        
+        /* Revised Prediction Card Styles */
         .prediction-card { 
-            background: #FFFFFF; 
-            color: #000000; 
+            background: var(--white); 
+            color: var(--black); 
             border-radius: 15px; 
             padding: 25px; 
             margin: 30px 0; 
             border: 3px solid var(--gold); 
+            box-shadow: 0 5px 20px rgba(0,0,0,.2);
         }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--light-gold); }
         .card-title { font-size: 1.5rem; color: var(--primary-red); font-weight: 700; }
@@ -149,7 +152,7 @@
             <div class="result-container hidden" id="throwResult" style="text-align:center; margin-top:15px;"><p id="throwResultText">Hasil lemparan: -</p></div>
         </div>
         <div class="hidden" id="predictionResult">
-            <div id="predictionCard">
+            <div id="predictionCard" class="prediction-card">
                 <div class="card-header">
                     <div>
                         <div class="card-title">Hasil Ramalan</div>
@@ -428,6 +431,15 @@
         function updateUIBasedOnUserState() {
             const canShake = nameInput.value.trim() !== '' && (isPremiumUser || freeAttemptsLeft > 0 || isUserAdmin);
             shakeBtn.disabled = !canShake;
+            // Tampilkan jumlah kocokan tersisa jika pengguna bukan premium
+            if (!isPremiumUser && !isUserAdmin) {
+                 goToPaymentBtn.textContent = `Upgrade Sekarang (${freeAttemptsLeft} sisa)`;
+                 if (freeAttemptsLeft <= 0) {
+                     goToPaymentBtn.textContent = `Upgrade Sekarang (Habis)`;
+                 }
+            } else {
+                 goToPaymentBtn.textContent = `Akun Premium`;
+            }
         }
 
         // === Logika Utama & Event Listeners ===
@@ -640,6 +652,13 @@
                         try {
                             const userDocRef = doc(db, "users", currentUser.uid);
                             await updateDoc(userDocRef, { freeAttemptsLeft: increment(-1) });
+                            // Perbarui UI setelah mengurangi jatah
+                            onSnapshot(userDocRef, (docSnap) => {
+                                if (docSnap.exists()) {
+                                    freeAttemptsLeft = docSnap.data().freeAttemptsLeft;
+                                    updateUIBasedOnUserState();
+                                }
+                            });
                         } catch (updateError) {
                             console.error("Gagal mengurangi jatah gratis, tapi hasil tetap ditampilkan:", updateError);
                         }
@@ -817,7 +836,7 @@
 
         // Sharing and Download Logic
         downloadBtn.addEventListener('click', () => {
-            html2canvas(document.getElementById('predictionCard'), { backgroundColor: '#FFFFFF', scale: 2 }).then(canvas => {
+            html2canvas(document.getElementById('predictionCard')).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `Ramalan_CiamSi_${nameInput.value.trim().replace(/\s/g, '_') || 'user'}.jpg`;
                 link.href = canvas.toDataURL('image/jpeg', 0.9);
