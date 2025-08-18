@@ -743,10 +743,14 @@
             btn.textContent = "Memproses...";
             try {
                 const finalUserName = currentUser.displayName || userName;
+                // --- KODE BARU UNTUK MEMBUAT ORDER ID UNIK ---
+                const orderId = 'ciamsi-' + Date.now() + Math.random().toString(36).substr(2, 9);
+                
                 const result = await createTransaction({ 
                     name: finalUserName, 
                     price: selectedPackage.price, 
-                    attempts: selectedPackage.attempts 
+                    attempts: selectedPackage.attempts,
+                    orderId: orderId
                 });
                 window.snap.pay(result.data.token, {
                     onSuccess: async (res) => {
@@ -755,7 +759,7 @@
                              await updateDoc(doc(db, "users", currentUser.uid), {
                                 isPremium: true
                             });
-                            await updateDoc(doc(db, "purchases", res.order_id), {
+                            await setDoc(doc(db, "purchases", res.order_id), {
                                 status: 'success',
                                 userId: currentUser.uid,
                                 timestamp: serverTimestamp()
@@ -768,7 +772,7 @@
                     onPending: (res) => {
                         console.log('Payment pending:', res);
                         if (currentUser) {
-                            await setDoc(doc(db, "purchases", res.order_id), {
+                            setDoc(doc(db, "purchases", res.order_id), {
                                 status: 'pending',
                                 userId: currentUser.uid,
                                 package: selectedPackage,
@@ -780,7 +784,7 @@
                     onError: (res) => {
                         console.error('Payment error:', res);
                         if (currentUser) {
-                            await setDoc(doc(db, "purchases", res.order_id), {
+                            setDoc(doc(db, "purchases", res.order_id), {
                                 status: 'error',
                                 userId: currentUser.uid,
                                 package: selectedPackage,
