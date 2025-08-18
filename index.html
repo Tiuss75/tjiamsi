@@ -104,7 +104,7 @@
         footer a { color: var(--light-gold); margin: 0 10px; cursor: pointer; }
         .tab-container { margin-bottom: 20px; }
         .tab-buttons { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
-        .tab-button { padding: 10px 20px; border-radius: 10px; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; transition: background 0.3s; }
+        .tab-button { padding: 10px 20px; border-radius: 10px; border: none; background: rgba(255,255,255,0.1); color: var(--black); cursor: pointer; transition: background 0.3s; }
         .tab-button.active { background: var(--gold); color: var(--black); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -594,7 +594,6 @@
             await showPrediction();
         }
 
-
         throwBtn.addEventListener('click', async () => {
             throwBtn.disabled = true;
             throwCount++;
@@ -652,13 +651,6 @@
                         try {
                             const userDocRef = doc(db, "users", currentUser.uid);
                             await updateDoc(userDocRef, { freeAttemptsLeft: increment(-1) });
-                            // Perbarui UI setelah mengurangi jatah
-                            onSnapshot(userDocRef, (docSnap) => {
-                                if (docSnap.exists()) {
-                                    freeAttemptsLeft = docSnap.data().freeAttemptsLeft;
-                                    updateUIBasedOnUserState();
-                                }
-                            });
                         } catch (updateError) {
                             console.error("Gagal mengurangi jatah gratis, tapi hasil tetap ditampilkan:", updateError);
                         }
@@ -836,7 +828,7 @@
 
         // Sharing and Download Logic
         downloadBtn.addEventListener('click', () => {
-            html2canvas(document.getElementById('predictionCard')).then(canvas => {
+            html2canvas(document.getElementById('predictionCard'), { backgroundColor: '#FFFFFF', scale: 2 }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `Ramalan_CiamSi_${nameInput.value.trim().replace(/\s/g, '_') || 'user'}.jpg`;
                 link.href = canvas.toDataURL('image/jpeg', 0.9);
