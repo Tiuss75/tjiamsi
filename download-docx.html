@@ -3,16 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ekspor Ramalan ke Dokumen</title>
+  <title>Ekspor Ramalan ke Halaman Cetak</title>
   <!-- Tailwind CSS untuk styling -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <!-- Library untuk membuat file .docx (menggunakan CDN alternatif) -->
-  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
-  <!-- Library untuk menyimpan file dari browser -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <style>
     body {
       font-family: 'Inter', sans-serif;
@@ -22,17 +18,17 @@
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
   <div class="bg-white p-8 rounded-xl shadow-lg text-center w-full max-w-md">
     <h1 class="text-2xl font-bold text-gray-800 mb-4">Ekspor Data Ramalan</h1>
-    <p class="text-gray-600 mb-6">Klik tombol di bawah untuk mengunduh data dari Firebase sebagai file dokumen (.docx) yang bisa dibuka di Google Docs.</p>
+    <p class="text-gray-600 mb-6">Klik tombol di bawah untuk membuka data dari Firebase di halaman baru yang siap untuk dicetak atau disimpan sebagai PDF.</p>
     
-    <!-- Tombol untuk memulai unduhan -->
-    <button onclick="downloadDoc()" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300 ease-in-out w-full disabled:bg-gray-400">
+    <!-- Tombol untuk memulai proses -->
+    <button onclick="createPrintablePage()" class="bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-all duration-300 ease-in-out w-full disabled:bg-gray-400">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 7.414V13a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+        <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v3a2 2 0 002 2h6a2 2 0 002-2v-3h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v3h6v-3z" clip-rule="evenodd" />
       </svg>
-      Unduh Dokumen (.docx)
+      Buat Halaman Siap Cetak
     </button>
     
-    <!-- Status unduhan -->
+    <!-- Status proses -->
     <div id="status" class="mt-4 text-sm text-gray-500 min-h-[20px]"></div>
   </div>
 
@@ -56,30 +52,27 @@
       db = firebase.firestore();
       document.getElementById('status').textContent = "Firebase siap.";
       console.log("Firebase initialized successfully");
-    } catch (error) {
+    } catch (error)
+    {
       document.getElementById('status').textContent = "Error inisialisasi Firebase: " + error.message;
       console.error("Firebase init error:", error);
     }
 
-    // Fungsi untuk mengunduh data sebagai file .docx
-    async function downloadDoc() {
+    // Fungsi untuk membuat halaman baru yang bisa dicetak
+    async function createPrintablePage() {
       const statusDiv = document.getElementById('status');
-      const downloadButton = document.querySelector('button');
+      const actionButton = document.querySelector('button');
       
       try {
-        // --- PERBAIKAN: Cek apakah library 'docx' sudah termuat ---
-        if (typeof docx === 'undefined') {
-          throw new Error("Library 'docx' gagal dimuat. Coba jalankan file ini di komputer Anda, bukan di editor online.");
-        }
-        
         if (!db) {
           throw new Error("Firestore belum terinisialisasi");
         }
         
-        statusDiv.textContent = "Memulai proses unduh...";
-        downloadButton.disabled = true;
-        console.log("Starting download process...");
+        statusDiv.textContent = "Memulai proses...";
+        actionButton.disabled = true;
+        console.log("Starting process...");
         
+        // Mengambil data dari koleksi 'ramalan'
         const snapshot = await db.collection("ramalan").get();
         statusDiv.textContent = "Data berhasil diambil dari Firestore...";
         console.log("Data retrieved from Firestore");
@@ -87,85 +80,87 @@
         if (snapshot.empty) {
           statusDiv.textContent = "Tidak ada data yang ditemukan di koleksi 'ramalan'.";
           console.warn("No data found in collection");
-          downloadButton.disabled = false;
+          actionButton.disabled = false;
           return;
         }
-
-        const paragraphs = [];
-
-        paragraphs.push(
-          new docx.Paragraph({
-            children: [
-              new docx.TextRun({
-                text: "Data Ramalan",
-                bold: true,
-                size: 48,
-                font: "Calibri",
-              }),
-            ],
-            alignment: docx.AlignmentType.CENTER,
-            spacing: { after: 400 },
-          })
-        );
         
+        // --- PERBAIKAN: Mengurutkan data berdasarkan nomor ---
+        const ramalanData = [];
         snapshot.forEach(doc => {
-          const d = doc.data();
-          
-          paragraphs.push(
-            new docx.Paragraph({
-              children: [
-                new docx.TextRun({
-                  text: `Ramalan Nomor: ${d.nomor || 'N/A'}`,
-                  bold: true,
-                  size: 32,
-                  color: "2E74B5",
-                }),
-              ],
-              spacing: { before: 300, after: 150 },
-              border: { bottom: { color: "auto", space: 1, value: "single", size: 6 } },
-            })
-          );
-          
-          const createFieldParagraph = (label, text) => {
-            return new docx.Paragraph({
-              children: [
-                new docx.TextRun({ text: `${label}: `, bold: true, size: 24 }),
-                new docx.TextRun({ text: text || "", size: 24 }),
-              ],
-              spacing: { after: 100 },
-              indent: { left: 720 },
-            });
-          };
-
-          paragraphs.push(createFieldParagraph("Dewa", d.dewa));
-          paragraphs.push(createFieldParagraph("Makna Lambang", d.sinthio));
-          paragraphs.push(createFieldParagraph("Bunyi Syair", d.syair));
-          paragraphs.push(createFieldParagraph("Selayang Pandang", d.selayangPandang));
-          paragraphs.push(createFieldParagraph("Pedoman Jawaban", d.pedoman));
-          paragraphs.push(createFieldParagraph("Arti Ramalan", d.artiRamalan));
+            ramalanData.push(doc.data());
         });
 
-        const docToExport = new docx.Document({
-          sections: [{
-            properties: {},
-            children: paragraphs,
-          }],
-        });
+        // Mengurutkan array berdasarkan field 'nomor'
+        // parseFloat digunakan untuk memastikan perbandingan angka berjalan benar
+        ramalanData.sort((a, b) => parseFloat(a.nomor) - parseFloat(b.nomor));
+        // --- AKHIR PERBAIKAN ---
+
+        // Memulai pembuatan konten HTML untuk tab baru
+        let htmlContent = `
+          <!DOCTYPE html>
+          <html lang="id">
+          <head>
+            <meta charset="UTF-8">
+            <title>Data Ramalan - Siap Cetak</title>
+            <style>
+              body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; }
+              @media print {
+                body { background-color: #fff; }
+                .print-instructions { display: none; }
+              }
+              .page { background: white; width: 21cm; min-height: 29.7cm; padding: 2cm; margin: 1cm auto; border: 1px #D1D1D1 solid; border-radius: 5px; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); }
+              .print-instructions { text-align: center; padding: 15px; background-color: #fffbe6; border: 1px solid #ffe58f; border-radius: 8px; margin: 20px auto; max-width: 80%; }
+              h1 { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; }
+              .ramalan-item { margin-bottom: 2.5em; padding-bottom: 1.5em; border-bottom: 1px dashed #ccc; page-break-inside: avoid; }
+              .ramalan-item:last-child { border-bottom: none; }
+              .ramalan-item h2 { font-size: 1.5em; color: #2E74B5; margin-bottom: 1em; }
+              .field { margin-bottom: 0.8em; }
+              .field strong { display: inline-block; width: 150px; color: #333; vertical-align: top; }
+              .field span { display: inline-block; width: calc(100% - 160px); color: #555; }
+            </style>
+          </head>
+          <body>
+            <div class="print-instructions">
+              <strong>Petunjuk:</strong> Gunakan menu <strong>Print</strong> (Ctrl+P atau Cmd+P) untuk menyimpan halaman ini sebagai file PDF.
+            </div>
+            <div class="page">
+              <h1>Data Ramalan</h1>
+        `;
         
-        statusDiv.textContent = "Membuat file dokumen...";
-
-        docx.Packer.toBlob(docToExport).then(blob => {
-          console.log("Document blob created");
-          saveAs(blob, "Ramalan.docx");
-          statusDiv.textContent = "File Dokumen (.docx) berhasil diunduh!";
-          console.log("Word file downloaded successfully");
+        // Menambahkan setiap data dari array yang SUDAH DIURUTKAN ke HTML
+        ramalanData.forEach(d => {
+          htmlContent += `
+            <div class="ramalan-item">
+              <h2>Ramalan Nomor: ${d.nomor || 'N/A'}</h2>
+              <div class="field"><strong>Dewa:</strong> <span>${d.dewa || ''}</span></div>
+              <div class="field"><strong>Makna Lambang:</strong> <span>${d.sinthio || ''}</span></div>
+              <div class="field"><strong>Bunyi Syair:</strong> <span>${d.syair || ''}</span></div>
+              <div class="field"><strong>Selayang Pandang:</strong> <span>${d.selayangPandang || ''}</span></div>
+              <div class="field"><strong>Pedoman Jawaban:</strong> <span>${d.pedoman || ''}</span></div>
+              <div class="field"><strong>Arti Ramalan:</strong> <span>${d.artiRamalan || ''}</span></div>
+            </div>
+          `;
         });
+
+        htmlContent += `
+            </div>
+          </body>
+          </html>
+        `;
+
+        // Membuka tab baru dan menulis konten HTML ke dalamnya
+        const newTab = window.open();
+        newTab.document.open();
+        newTab.document.write(htmlContent);
+        newTab.document.close();
         
+        statusDiv.textContent = "Halaman siap cetak telah dibuka di tab baru!";
+
       } catch (error) {
         statusDiv.textContent = "Error: " + error.message;
-        console.error("Download error:", error);
+        console.error("Process error:", error);
       } finally {
-        downloadButton.disabled = false;
+        actionButton.disabled = false;
       }
     }
   </script>
