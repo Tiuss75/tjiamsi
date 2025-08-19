@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kitab Ciamsi Digital - Real</title>
+  <title>Kitab Ciamsi Digital</title>
   <!-- CDN untuk html2canvas dan jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -130,19 +130,13 @@
       background-color: #f8f9fa;
       border-left: 4px solid #28a745;
     }
-    .loading {
-      text-align: center;
-      color: #888;
-      font-style: italic;
-      padding: 20px;
-    }
   </style>
 </head>
 <body>
 
   <div class="container">
     <h1>📚 Kitab Ciamsi Digital</h1>
-    <p class="subtitle">Klik judul untuk membuka isi ramalan. Data diambil langsung dari Firebase.</p>
+    <p class="subtitle">Klik judul untuk membuka isi ramalan. Data diambil langsung dari Firestore.</p>
 
     <!-- Kotak Pencarian -->
     <div class="search-box">
@@ -152,7 +146,7 @@
 
     <!-- Daftar Ramalan -->
     <div id="daftar-ciamsi">
-      <p class="loading">Memuat data dari Firebase...</p>
+      <p class="loading">Memuat data dari Firestore...</p>
     </div>
 
     <!-- Tempat Detail Ramalan -->
@@ -178,19 +172,19 @@
     // Array untuk menyimpan data dari Firestore
     let dataArr = [];
 
-    // Ambil data dari koleksi "ciamsi"
-    db.collection("ciamsi")
+    // Ambil data dari koleksi "ramalan"
+    db.collection("ramalan")
       .get()
       .then((querySnapshot) => {
         if (querySnapshot.empty) {
-          document.getElementById('daftar-ciamsi').innerHTML = "<p style='text-align:center; color:#888;'>Tidak ada data ditemukan di Firestore.</p>";
+          document.getElementById('daftar-ciamsi').innerHTML = "<p style='text-align:center; color:#888;'>Tidak ada data ditemukan.</p>";
           return;
         }
 
         querySnapshot.forEach((doc) => {
           const d = doc.data();
           dataArr.push({
-             "Nomor": doc.id, // ID dokumen langsung jadi nomor
+            "Nomor": doc.id, // ← ID dokumen langsung jadi nomor
             "Dewa": d.dewa || "",
             "Makna Lambang": d.sinthio || "",
             "Bunyi Syair": d.syair || "",
