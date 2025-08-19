@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kitab Ciamsi Digital - Real</title>
+  <!-- CDN untuk html2canvas dan jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.7;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #8B0000;
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      font-size: 1.1em;
+      margin-bottom: 30px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .search-box {
+      margin: 20px 0;
+      text-align: center;
+    }
+    .search-box input {
+      padding: 10px;
+      width: 60%;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    .search-box button {
+      padding: 10px 15px;
+      background-color: #8B0000;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-left: 5px;
+    }
+    .search-box button:hover {
+      background-color: #6d0000;
+    }
+    .list-item {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      color: #1a5276;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .list-item:hover {
+      background-color: #f0f0f0;
+    }
+    .detail {
+      display: none;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    }
+    .detail h2 {
+      color: #8B0000;
+      margin-top: 0;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
+    .detail p {
+      margin: 10px 0;
+    }
+    .detail ul {
+      padding-left: 20px;
+    }
+    .back-btn {
+      display: inline-block;
+      margin: 15px 0;
+      padding: 8px 15px;
+      background-color: #555;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .back-btn:hover {
+      background-color: #333;
+    }
+    .download-btns {
+      margin: 15px 0;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .download-btns button {
+      padding: 8px 15px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .download-btns button:hover {
+      background-color: #218838;
+    }
+    .quote {
+      font-style: italic;
+      color: #555;
+      margin: 15px 0;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-left: 4px solid #28a745;
+    }
+    .loading {
+      text-align: center;
+      color: #888;
+      font-style: italic;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>📚 Kitab Ciamsi Digital</h1>
+    <p class="subtitle">Klik judul untuk membuka isi ramalan. Data diambil langsung dari Firebase.</p>
+
+    <!-- Kotak Pencarian -->
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Cari berdasarkan nomor atau kata kunci..." />
+      <button onclick="search()">Cari</button>
+    </div>
+
+    <!-- Daftar Ramalan -->
+    <div id="daftar-ciamsi">
+      <p class="loading">Memuat data dari Firebase...</p>
+    </div>
+
+    <!-- Tempat Detail Ramalan -->
+    <div id="detail-view"></div>
+  </div>
+
+  <script>
+    // 🔥 GANTI DENGAN KONFIGURASI FIREBASE ANDA
+    const firebaseConfig = {
+      apiKey: "AIzaSyA93UxOEya10FRFOPpbOT4PfSmA_aaQ",
+      authDomain: "siami-3dd65.firebaseapp.com",
+      projectId: "siami-3dd65",
+      storageBucket: "siami-3dd65.appspot.com",
+      messagingSenderId: "675720995739",
+      appId: "1:675720995739:web:1af5223781df968289",
+      measurementId: "G-P5TVSQ6V7X"
+    };
+
+    // Inisialisasi Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Array untuk menyimpan data dari Firestore
+    let dataArr = [];
+
+    // Ambil data dari koleksi "ciamsi"
+    db.collection("ciamsi")
+      .get()
+      .then((querySnapshot) => {
+        if (querySnapshot.empty) {
+          document.getElementById('daftar-ciamsi').innerHTML = "<p style='text-align:center; color:#888;'>Tidak ada data ditemukan di Firestore.</p>";
+          return;
+        }
+
+        querySnapshot.forEach((doc) => {
+          const d = doc.data();
+          dataArr.push({
+            "Nomor": d.nomor || "",
+            "Dewa": d.dewa || "",
+            "Makna Lambang": d.sinthio || "",
+            "Bunyi Syair": d.syair || "",
+            "Selayang Pandang": d.selayangPandang || "",
+            "Pedoman Jawaban": d.pedoman || "",
+            "Arti Ramalan": d.artiRamalan || ""
+          });
+        });
+
+        // Urutkan berdasarkan nomor
+        dataArr.sort((a, b) => parseInt(a.Nomor) - parseInt(b.Nomor));
+
+        // Render daftar
+        renderList(dataArr);
+      })
+      .catch((error) => {
+        console.error("Gagal mengambil data dari Firestore: ", error);
+        document.getElementById('daftar-ciamsi').innerHTML = 
+          `<p style='text-align:center; color:red;'>Gagal memuat data: ${error.message}</p>`;
+      });
+
+    // Render daftar judul
+    function renderList(data) {
+      const listContainer = document.getElementById('daftar-ciamsi');
+      listContainer.innerHTML = "";
+
+      if (data.length === 0) {
+        listContainer.innerHTML = "<p>Tidak ada ramalan tersedia.</p>";
+        return;
+      }
+
+      data.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.textContent = `Dewa ${item.Dewa} (Nomor ${item.Nomor})`;
+        div.onclick = () => showDetail(item);
+        listContainer.appendChild(div);
+      });
+    }
+
+    // Tampilkan detail ramalan
+    function showDetail(item) {
+      const detailView = document.getElementById('detail-view');
+      const pedomanList = item["Pedoman Jawaban"]
+        .split(', ')
+        .map(p => `<li>${p}</li>`)
+        .join('');
+
+      detailView.innerHTML = `
+        <div class="detail">
+          <a href="#" class="back-btn" onclick="backToList()">← Kembali ke Daftar</a>
+          <h2>Dewa: ${item.Dewa}</h2>
+          <p><strong>Nomor:</strong> ${item.Nomor}</p>
+
+          <p><strong>Makna Lambang:</strong></p>
+          <p>${item["Makna Lambang"]}</p>
+
+          <p><strong>Bunyi Syair:</strong></p>
+          <p>${item["Bunyi Syair"]}</p>
+
+          <p><strong>Selayang Pandang:</strong></p>
+          <p>${item["Selayang Pandang"]}</p>
+
+          <p><strong>Pedoman Jawaban:</strong></p>
+          <ul>${pedomanList}</ul>
+
+          <p><strong>Arti Ramalan:</strong></p>
+          <p>${item["Arti Ramalan"]}</p>
+
+          <div class="quote">
+            <p><strong>Nasihat:</strong> Di dunia yang penuh kepalsuan, orang yang tulus adalah cahaya. Dan cahaya itu, meski kecil, takkan pernah padam.</p>
+          </div>
+
+          <div class="download-btns">
+            <button onclick="downloadPDF()">📥 Download PDF</button>
+            <button onclick="downloadJPG()">📷 Download JPG</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('daftar-ciamsi').style.display = 'none';
+      detailView.style.display = 'block';
+    }
+
+    // Kembali ke daftar
+    function backToList() {
+      document.getElementById('detail-view').style.display = 'none';
+      document.getElementById('daftar-ciamsi').style.display = 'block';
+    }
+
+    // Pencarian berdasarkan nomor atau kata kunci
+    function search() {
+      const input = document.getElementById('searchInput').value.trim().toLowerCase();
+      if (!input) {
+        alert("Masukkan nomor atau kata kunci.");
+        return;
+      }
+
+      const found = dataArr.find(item => 
+        item.Nomor === input || 
+        item.Dewa.toLowerCase().includes(input) ||
+        item["Arti Ramalan"].toLowerCase().includes(input) ||
+        item["Pedoman Jawaban"].toLowerCase().includes(input)
+      );
+
+      if (found) {
+        showDetail(found);
+      } else {
+        alert(`Tidak ditemukan ramalan dengan kata kunci: "${input}"`);
+      }
+    }
+
+    // Download PDF
+    function downloadPDF() {
+      const element = document.querySelector('.detail');
+      const opt = {
+        margin: 10,
+        filename: `ramalan_${document.querySelector('.detail h2').textContent.replace(/\s+/g, '_')}.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().from(element).set(opt).save();
+    }
+
+    // Download JPG
+    function downloadJPG() {
+      const element = document.querySelector('.detail');
+      html2canvas(element).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `ramalan_${document.querySelector('.detail h2').textContent.replace(/\s+/g, '_')}.jpg`;
+        link.href = canvas.toDataURL('image/jpeg');
+        link.click();
+      });
+    }
+  </script>
+
+</body>
+</html>
