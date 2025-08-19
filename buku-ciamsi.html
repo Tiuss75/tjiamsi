@@ -190,7 +190,7 @@
         querySnapshot.forEach((doc) => {
           const d = doc.data();
           dataArr.push({
-            "Nomor": d.nomor || "",
+             "Nomor": doc.id, // ID dokumen langsung jadi nomor
             "Dewa": d.dewa || "",
             "Makna Lambang": d.sinthio || "",
             "Bunyi Syair": d.syair || "",
