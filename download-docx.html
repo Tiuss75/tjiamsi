@@ -9,8 +9,8 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <!-- Library untuk membuat file .docx -->
-  <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+  <!-- Library untuk membuat file .docx (menggunakan CDN alternatif) -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
   <!-- Library untuk menyimpan file dari browser -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <style>
@@ -67,6 +67,11 @@
       const downloadButton = document.querySelector('button');
       
       try {
+        // --- PERBAIKAN: Cek apakah library 'docx' sudah termuat ---
+        if (typeof docx === 'undefined') {
+          throw new Error("Library 'docx' gagal dimuat. Coba jalankan file ini di komputer Anda, bukan di editor online.");
+        }
+        
         if (!db) {
           throw new Error("Firestore belum terinisialisasi");
         }
@@ -86,17 +91,15 @@
           return;
         }
 
-        // Array untuk menampung semua elemen paragraf dokumen
         const paragraphs = [];
 
-        // Menambahkan judul utama dokumen
         paragraphs.push(
           new docx.Paragraph({
             children: [
               new docx.TextRun({
                 text: "Data Ramalan",
                 bold: true,
-                size: 48, // Ukuran font dalam half-points (24pt)
+                size: 48,
                 font: "Calibri",
               }),
             ],
@@ -105,11 +108,9 @@
           })
         );
         
-        // Iterasi setiap dokumen dari Firebase
         snapshot.forEach(doc => {
           const d = doc.data();
           
-          // Judul untuk setiap nomor ramalan
           paragraphs.push(
             new docx.Paragraph({
               children: [
@@ -125,7 +126,6 @@
             })
           );
           
-          // Fungsi bantuan untuk membuat paragraf dengan label tebal
           const createFieldParagraph = (label, text) => {
             return new docx.Paragraph({
               children: [
@@ -133,11 +133,10 @@
                 new docx.TextRun({ text: text || "", size: 24 }),
               ],
               spacing: { after: 100 },
-              indent: { left: 720 }, // Indentasi 0.5 inch
+              indent: { left: 720 },
             });
           };
 
-          // Menambahkan setiap field data ke dokumen
           paragraphs.push(createFieldParagraph("Dewa", d.dewa));
           paragraphs.push(createFieldParagraph("Makna Lambang", d.sinthio));
           paragraphs.push(createFieldParagraph("Bunyi Syair", d.syair));
@@ -146,8 +145,7 @@
           paragraphs.push(createFieldParagraph("Arti Ramalan", d.artiRamalan));
         });
 
-        // Membuat objek dokumen dari library docx
-        const doc = new docx.Document({
+        const docToExport = new docx.Document({
           sections: [{
             properties: {},
             children: paragraphs,
@@ -156,10 +154,8 @@
         
         statusDiv.textContent = "Membuat file dokumen...";
 
-        // Menggunakan Packer untuk mengonversi dokumen menjadi blob (file)
-        docx.Packer.toBlob(doc).then(blob => {
+        docx.Packer.toBlob(docToExport).then(blob => {
           console.log("Document blob created");
-          // Menyimpan file menggunakan FileSaver.js
           saveAs(blob, "Ramalan.docx");
           statusDiv.textContent = "File Dokumen (.docx) berhasil diunduh!";
           console.log("Word file downloaded successfully");
@@ -169,7 +165,6 @@
         statusDiv.textContent = "Error: " + error.message;
         console.error("Download error:", error);
       } finally {
-        // Mengaktifkan kembali tombol setelah proses selesai atau gagal
         downloadButton.disabled = false;
       }
     }
