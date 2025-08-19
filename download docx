@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ekspor Ramalan ke Dokumen</title>
+  <!-- Tailwind CSS untuk styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- Library untuk membuat file .docx -->
+  <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+  <!-- Library untuk menyimpan file dari browser -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-xl shadow-lg text-center w-full max-w-md">
+    <h1 class="text-2xl font-bold text-gray-800 mb-4">Ekspor Data Ramalan</h1>
+    <p class="text-gray-600 mb-6">Klik tombol di bawah untuk mengunduh data dari Firebase sebagai file dokumen (.docx) yang bisa dibuka di Google Docs.</p>
+    
+    <!-- Tombol untuk memulai unduhan -->
+    <button onclick="downloadDoc()" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300 ease-in-out w-full disabled:bg-gray-400">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 9.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 7.414V13a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+      </svg>
+      Unduh Dokumen (.docx)
+    </button>
+    
+    <!-- Status unduhan -->
+    <div id="status" class="mt-4 text-sm text-gray-500 min-h-[20px]"></div>
+  </div>
+
+  <script>
+    // Konfigurasi Firebase Anda
+    const firebaseConfig = {
+      apiKey: "AIzaSyA93UxOEya10fRfOPpbOT4PfSmA_aaQx-E",
+      authDomain: "siamsi-3dd65.firebaseapp.com",
+      projectId: "siamsi-3dd65",
+      storageBucket: "siamsi-3dd65.appspot.com",
+      messagingSenderId: "675720995739",
+      appId: "1:675720995739:web:1af5223781df968289373e",
+      measurementId: "G-P5TVSQ6V7X"
+    };
+
+    let db;
+    
+    // Inisialisasi Firebase
+    try {
+      const app = firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      document.getElementById('status').textContent = "Firebase siap.";
+      console.log("Firebase initialized successfully");
+    } catch (error) {
+      document.getElementById('status').textContent = "Error inisialisasi Firebase: " + error.message;
+      console.error("Firebase init error:", error);
+    }
+
+    // Fungsi untuk mengunduh data sebagai file .docx
+    async function downloadDoc() {
+      const statusDiv = document.getElementById('status');
+      const downloadButton = document.querySelector('button');
+      
+      try {
+        if (!db) {
+          throw new Error("Firestore belum terinisialisasi");
+        }
+        
+        statusDiv.textContent = "Memulai proses unduh...";
+        downloadButton.disabled = true;
+        console.log("Starting download process...");
+        
+        const snapshot = await db.collection("ramalan").get();
+        statusDiv.textContent = "Data berhasil diambil dari Firestore...";
+        console.log("Data retrieved from Firestore");
+
+        if (snapshot.empty) {
+          statusDiv.textContent = "Tidak ada data yang ditemukan di koleksi 'ramalan'.";
+          console.warn("No data found in collection");
+          downloadButton.disabled = false;
+          return;
+        }
+
+        // Array untuk menampung semua elemen paragraf dokumen
+        const paragraphs = [];
+
+        // Menambahkan judul utama dokumen
+        paragraphs.push(
+          new docx.Paragraph({
+            children: [
+              new docx.TextRun({
+                text: "Data Ramalan",
+                bold: true,
+                size: 48, // Ukuran font dalam half-points (24pt)
+                font: "Calibri",
+              }),
+            ],
+            alignment: docx.AlignmentType.CENTER,
+            spacing: { after: 400 },
+          })
+        );
+        
+        // Iterasi setiap dokumen dari Firebase
+        snapshot.forEach(doc => {
+          const d = doc.data();
+          
+          // Judul untuk setiap nomor ramalan
+          paragraphs.push(
+            new docx.Paragraph({
+              children: [
+                new docx.TextRun({
+                  text: `Ramalan Nomor: ${d.nomor || 'N/A'}`,
+                  bold: true,
+                  size: 32,
+                  color: "2E74B5",
+                }),
+              ],
+              spacing: { before: 300, after: 150 },
+              border: { bottom: { color: "auto", space: 1, value: "single", size: 6 } },
+            })
+          );
+          
+          // Fungsi bantuan untuk membuat paragraf dengan label tebal
+          const createFieldParagraph = (label, text) => {
+            return new docx.Paragraph({
+              children: [
+                new docx.TextRun({ text: `${label}: `, bold: true, size: 24 }),
+                new docx.TextRun({ text: text || "", size: 24 }),
+              ],
+              spacing: { after: 100 },
+              indent: { left: 720 }, // Indentasi 0.5 inch
+            });
+          };
+
+          // Menambahkan setiap field data ke dokumen
+          paragraphs.push(createFieldParagraph("Dewa", d.dewa));
+          paragraphs.push(createFieldParagraph("Makna Lambang", d.sinthio));
+          paragraphs.push(createFieldParagraph("Bunyi Syair", d.syair));
+          paragraphs.push(createFieldParagraph("Selayang Pandang", d.selayangPandang));
+          paragraphs.push(createFieldParagraph("Pedoman Jawaban", d.pedoman));
+          paragraphs.push(createFieldParagraph("Arti Ramalan", d.artiRamalan));
+        });
+
+        // Membuat objek dokumen dari library docx
+        const doc = new docx.Document({
+          sections: [{
+            properties: {},
+            children: paragraphs,
+          }],
+        });
+        
+        statusDiv.textContent = "Membuat file dokumen...";
+
+        // Menggunakan Packer untuk mengonversi dokumen menjadi blob (file)
+        docx.Packer.toBlob(doc).then(blob => {
+          console.log("Document blob created");
+          // Menyimpan file menggunakan FileSaver.js
+          saveAs(blob, "Ramalan.docx");
+          statusDiv.textContent = "File Dokumen (.docx) berhasil diunduh!";
+          console.log("Word file downloaded successfully");
+        });
+        
+      } catch (error) {
+        statusDiv.textContent = "Error: " + error.message;
+        console.error("Download error:", error);
+      } finally {
+        // Mengaktifkan kembali tombol setelah proses selesai atau gagal
+        downloadButton.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
